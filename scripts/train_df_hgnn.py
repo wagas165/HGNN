@@ -3,12 +3,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import torch
 from omegaconf import OmegaConf
 
 from src.common.logging import setup_logging, get_logger
+from src.common.path import DatasetRootResolutionError, resolve_dataset_root
 from src.common.seed import SeedConfig, set_seed
 from src.data.loaders.email_eu_full import EmailEuFullConfig, EmailEuFullLoader
 from src.data.transforms.split import DataSplits, SplitConfig, create_splits
@@ -35,13 +41,24 @@ def load_config(path: str) -> dict:
 def main() -> None:
     setup_logging()
     args = parse_args()
-    cfg = load_config(args.config)
+    config_path = Path(args.config).expanduser().resolve()
+    cfg = load_config(str(config_path))
 
     set_seed(SeedConfig(value=int(cfg.get("seed", 42))))
 
     data_cfg = cfg["data"]
+    try:
+        data_root = resolve_dataset_root(
+            data_cfg["root"],
+            PROJECT_ROOT,
+            config_path=config_path,
+        )
+    except DatasetRootResolutionError as exc:
+        LOGGER.error("%s", exc)
+        raise
+
     loader = EmailEuFullLoader(
-        data_cfg["root"],
+        str(data_root),
         EmailEuFullConfig(
             vertices_file=data_cfg.get("files", {}).get("vertices", "email-Eu-full-nverts.txt"),
             simplices_file=data_cfg.get("files", {}).get("simplices", "email-Eu-full-simplices.txt"),
@@ -83,6 +100,8 @@ def main() -> None:
             spectral_topk=cfg["features"]["deterministic"].get("spectral_topk", 32),
             use_spectral=cfg["features"]["deterministic"].get("use_spectral", True),
             use_hodge=cfg["features"]["deterministic"].get("use_hodge", False),
+            use_temporal=cfg["features"]["deterministic"].get("use_temporal", True),
+            quantile_clip=cfg["features"]["deterministic"].get("quantile_clip", 0.01),
             cache_dir=cfg["features"]["deterministic"].get("cache_dir"),
         ),
         optimizer_config=OptimizerConfig(
@@ -102,6 +121,7 @@ def main() -> None:
         labels=data.labels,
         splits={"train": splits.train_idx, "val": splits.val_idx, "test": splits.test_idx},
         num_classes=int(cfg.get("num_classes", data.labels.max().item() + 1)),
+        timestamps=data.timestamps,
     )
 
     report_path = save_metrics_report(metrics, cfg["reporting"].get("dir", "outputs/reports"))

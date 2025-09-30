@@ -14,7 +14,7 @@ class HypergraphData:
     num_nodes: int
     incidence: torch.Tensor  # dense or sparse N x E
     edge_weights: torch.Tensor
-    node_features: torch.Tensor
+    node_features: Optional[torch.Tensor]
     labels: Optional[torch.Tensor]
     timestamps: Optional[torch.Tensor]
     metadata: Dict[str, object]
@@ -24,7 +24,9 @@ class HypergraphDatasetLoader(ABC):
     """Abstract loader for hypergraph datasets."""
 
     def __init__(self, root: str) -> None:
-        self.root = Path(root)
+        self.root = Path(root).expanduser()
+        if not self.root.is_absolute():
+            self.root = self.root.resolve()
 
     @abstractmethod
     def load(self) -> HypergraphData:
