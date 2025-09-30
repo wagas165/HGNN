@@ -1,0 +1,19 @@
+
+name: dawn_cat_edges
+task: auto
+files:
+  node_features: ""
+  node_labels: ""
+  edge_labels: ""   # DAWN 若有边类别，可用于超边分类
+  hyperedges: ""
+format:
+  hyperedges: auto
+  delimiter: auto
+splits:
+  method: stratified
+  train: 0.6
+  val: 0.2
+  test: 0.2
+options:
+  standardize_features: true
+  topk_spectral: 16

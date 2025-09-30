@@ -1,0 +1,7 @@
+
+numpy
+scipy
+torch>=2.0
+scikit-learn
+pandas
+pyyaml

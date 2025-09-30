@@ -1,0 +1,19 @@
+
+name: stackoverflow_answers
+task: auto   # auto / node_clf / edge_clf / link
+files:
+  node_features: ""   # e.g., path/to/node_features.npy or .csv (optional)
+  node_labels: ""     # e.g., path/to/node_labels.npy or .csv (optional)
+  edge_labels: ""     # e.g., path/to/edge_labels.npy or .csv (optional)
+  hyperedges: ""      # e.g., path/to/hyperedges.txt (.txt/.json/.npz supported)
+format:
+  hyperedges: auto    # auto / txt / json / npz
+  delimiter: auto     # for .txt, auto/space/comma
+splits:
+  method: stratified
+  train: 0.6
+  val: 0.2
+  test: 0.2
+options:
+  standardize_features: true
+  topk_spectral: 16
