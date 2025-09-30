@@ -52,6 +52,10 @@ optimizer:
 data:
   name: email_eu_full
   root: data/raw/email-Eu-full
+  files:
+    vertices: email-Eu-full-nverts.txt
+    simplices: email-Eu-full-simplices.txt
+    times: email-Eu-full-times.txt
   label_file: email-Eu-full-labels.npy
   task: node_classification
   split:
