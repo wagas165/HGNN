@@ -14,13 +14,16 @@ def build_incidence(n_nodes: int, hyperedges: List[List[int]], device=None):
     return H, w
 
 def normalized_hypergraph_operator(H: torch.Tensor, w: torch.Tensor):
-    N, M = H.shape
-    De = torch.clamp(H.sum(dim=0), min=1.0)
-    Dv = torch.clamp((H * w.unsqueeze(0)).sum(dim=1), min=1e-6)
-    Dv_inv_sqrt = torch.diag(torch.pow(Dv, -0.5))
-    W = torch.diag(w)
-    De_inv = torch.diag(1.0 / De)
-    Theta = Dv_inv_sqrt @ H @ W @ De_inv @ H.t() @ Dv_inv_sqrt
+    De = H.sum(dim=0)
+    Dv = torch.matmul(H, w.unsqueeze(-1)).squeeze(-1)
+
+    Dv_inv_sqrt = torch.pow(Dv.clamp(min=1e-6), -0.5)
+    edge_scale = w / De.clamp(min=1.0)
+
+    weighted_H = H * edge_scale
+    Theta_inner = weighted_H @ H.t()
+
+    Theta = Dv_inv_sqrt.unsqueeze(1) * Theta_inner * Dv_inv_sqrt.unsqueeze(0)
     return Theta
 
 class HypergraphMPConv(nn.Module):
