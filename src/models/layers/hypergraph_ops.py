@@ -7,12 +7,17 @@ from torch import Tensor
 
 def normalized_hypergraph_operator(incidence: Tensor, edge_weights: Tensor) -> Tensor:
     """Compute D_v^{-1/2} H W D_e^{-1} H^T D_v^{-1/2}."""
-    node_degree = torch.matmul(incidence, edge_weights.unsqueeze(1)).flatten()
+
+    node_degree = torch.matmul(incidence, edge_weights.unsqueeze(-1)).squeeze(-1)
     edge_degree = incidence.sum(dim=0)
-    d_v_inv_sqrt = torch.diag(torch.pow(node_degree.clamp(min=1e-6), -0.5))
-    d_e_inv = torch.diag(torch.pow(edge_degree.clamp(min=1.0), -1.0))
-    w_diag = torch.diag(edge_weights)
-    theta = d_v_inv_sqrt @ incidence @ w_diag @ d_e_inv @ incidence.t() @ d_v_inv_sqrt
+
+    d_v_inv_sqrt = torch.pow(node_degree.clamp(min=1e-6), -0.5)
+    edge_scale = edge_weights / edge_degree.clamp(min=1.0)
+
+    weighted_incidence = incidence * edge_scale
+    theta_inner = torch.matmul(weighted_incidence, incidence.t())
+
+    theta = d_v_inv_sqrt.unsqueeze(1) * theta_inner * d_v_inv_sqrt.unsqueeze(0)
     return theta
 
 
