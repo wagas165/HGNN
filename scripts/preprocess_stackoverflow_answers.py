@@ -33,13 +33,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--simplices-file",
         type=str,
-        default="hyperedges-stackoverflow-answers.txt",
+        default="stackoverflow-answers-hyperedges.txt",
         help="Relative path to hyperedge list",
     )
     parser.add_argument(
         "--labels-file",
         type=str,
-        default="node-labels-stackoverflow-answers.txt",
+        default="stackoverflow-answers-node-labels.txt",
         help="Relative path to node labels",
     )
     parser.add_argument(

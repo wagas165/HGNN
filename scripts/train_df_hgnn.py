@@ -10,6 +10,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+CONFIG_ROOT = PROJECT_ROOT / "configs"
+DEFAULT_CONFIG_PATH = CONFIG_ROOT / "default.yaml"
+
 import torch
 from omegaconf import OmegaConf
 
@@ -33,9 +36,71 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_config(path: str) -> dict:
+def _normalize_default_key(raw_key: str) -> str:
+    key = raw_key.strip()
+    if not key:
+        return key
+    for prefix in ("override ", "optional "):
+        if key.startswith(prefix):
+            key = key[len(prefix) :].strip()
+            break
+    if key.startswith("/"):
+        key = key[1:]
+    if "@" in key:
+        key = key.split("@", 1)[0]
+    return key
+
+
+def _compose_config_from_path(path: Path) -> "OmegaConf":
     cfg = OmegaConf.load(path)
-    return OmegaConf.to_container(cfg, resolve=True)
+    cfg_dict = OmegaConf.to_container(cfg, resolve=False)
+    defaults = cfg_dict.pop("defaults", [])
+
+    merged = OmegaConf.create()
+    for entry in defaults:
+        if isinstance(entry, str):
+            key = _normalize_default_key(entry)
+            value = None
+        elif isinstance(entry, dict) and len(entry) == 1:
+            raw_key, value = next(iter(entry.items()))
+            key = _normalize_default_key(str(raw_key))
+        else:
+            raise TypeError(f"Unsupported defaults entry: {entry!r}")
+
+        if key in {"", "_self_"} or value in {None, "_self_"}:
+            continue
+
+        group_path = CONFIG_ROOT / key
+        if group_path.is_dir():
+            candidate_path = group_path / f"{value}.yaml"
+        else:
+            candidate_path = group_path.with_suffix(".yaml")
+
+        if not candidate_path.exists():
+            raise FileNotFoundError(
+                f"Unable to resolve config default '{key}: {value}' at {candidate_path}"
+            )
+
+        resolved_cfg = _compose_config_from_path(candidate_path)
+        merged = OmegaConf.merge(merged, OmegaConf.create({key: resolved_cfg}))
+
+    current_cfg = OmegaConf.create(cfg_dict)
+    return OmegaConf.merge(merged, current_cfg)
+
+
+def load_config(path: str) -> dict:
+    target_path = Path(path)
+    composed = _compose_config_from_path(target_path)
+
+    if target_path.resolve() != DEFAULT_CONFIG_PATH.resolve():
+        default_cfg = _compose_config_from_path(DEFAULT_CONFIG_PATH)
+        if "data" in composed and "data" in default_cfg:
+            for key in ("name", "root", "files", "label_file"):
+                if key in default_cfg.data:
+                    del default_cfg.data[key]
+        composed = OmegaConf.merge(default_cfg, composed)
+
+    return OmegaConf.to_container(composed, resolve=True)
 
 
 def main() -> None:

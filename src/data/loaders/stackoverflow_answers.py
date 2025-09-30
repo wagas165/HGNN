@@ -18,7 +18,7 @@ class StackOverflowAnswersConfig(EdgeListHypergraphConfig):
 
     comment_prefix: str = "%"
     min_cardinality: int = 2
-    label_file: Optional[str] = "node-labels-stackoverflow-answers.txt"
+    label_file: Optional[str] = "stackoverflow-answers-node-labels.txt"
 
 
 class StackOverflowAnswersLoader(EdgeListHypergraphLoader):
