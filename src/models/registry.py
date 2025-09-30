@@ -18,6 +18,7 @@ class ModelFactoryInput:
     chebyshev_order: int
     lambda_align: float
     lambda_gate: float
+    fusion_dim: int | None = None
 
 
 def create_model(name: str, config: ModelFactoryInput):
@@ -32,6 +33,7 @@ def create_model(name: str, config: ModelFactoryInput):
             chebyshev_order=config.chebyshev_order,
             lambda_align=config.lambda_align,
             lambda_gate=config.lambda_gate,
+            fusion_dim=config.fusion_dim,
         )
         return DFHGNN(df_config)
     raise ValueError(f"Unknown model name: {name}")
