@@ -1,0 +1,30 @@
+defaults:
+  - override /model: df_hgnn
+  - override /data: stackoverflow_answers
+
+trainer:
+  max_epochs: 160
+  adam_epochs: 110
+  lbfgs_epochs: 35
+  early_stopping_patience: 22
+
+model:
+  hidden_dim: 176
+  dropout: 0.4
+  conv_type: mp
+
+data:
+  split:
+    strategy: stratified
+    train_ratio: 0.55
+    val_ratio: 0.2
+    test_ratio: 0.15
+    ood_ratio: 0.1
+    num_splits: 2
+
+metrics:
+  - name: accuracy
+  - name: macro_f1
+  - name: roc_auc
+
+notes: "StackOverflow OOD evaluation holding out 10% nodes for domain shift"

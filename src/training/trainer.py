@@ -64,7 +64,7 @@ class DFHGNNTrainer:
         splits: Dict[str, torch.Tensor],
         num_classes: int,
         timestamps: Optional[torch.Tensor] = None,
-    ) -> Dict[str, float]:
+    ) -> tuple[Dict[str, float], nn.Module]:
         deterministic_features = self.feature_bank(
             incidence, edge_weights, timestamps=timestamps
         )
@@ -91,9 +91,10 @@ class DFHGNNTrainer:
 
         LOGGER.info("Model initialized with %s parameters", sum(p.numel() for p in model.parameters()))
 
-        train_idx = self._move_to_device(splits["train"])
-        val_idx = self._move_to_device(splits["val"])
-        test_idx = self._move_to_device(splits["test"])
+        split_indices = {name: self._move_to_device(idx) for name, idx in splits.items()}
+        train_idx = split_indices["train"]
+        val_idx = split_indices.get("val")
+        test_idx = split_indices.get("test")
 
         x = self._move_to_device(node_features)
         z = self._move_to_device(deterministic_features)
@@ -135,7 +136,13 @@ class DFHGNNTrainer:
             scaler.update()
 
             metrics = self.evaluate(
-                model, x, z, incidence, edge_weights, labels, train_idx, val_idx, test_idx
+                model,
+                x,
+                z,
+                incidence,
+                edge_weights,
+                labels,
+                split_indices,
             )
             LOGGER.info(
                 "Epoch %d | loss=%.4f | val_accuracy=%.4f",
@@ -169,9 +176,17 @@ class DFHGNNTrainer:
         for _ in range(self.trainer_config.lbfgs_epochs):
             lbfgs.step(closure)
 
-        final_metrics = self.evaluate(model, x, z, incidence, edge_weights, labels, train_idx, val_idx, test_idx)
+        final_metrics = self.evaluate(
+            model,
+            x,
+            z,
+            incidence,
+            edge_weights,
+            labels,
+            split_indices,
+        )
         LOGGER.info("Training complete. Test accuracy=%.4f", final_metrics.get("test_accuracy", 0.0))
-        return final_metrics
+        return final_metrics, model
 
     def evaluate(
         self,
@@ -181,9 +196,7 @@ class DFHGNNTrainer:
         incidence: torch.Tensor,
         edge_weights: torch.Tensor,
         labels: torch.Tensor,
-        train_idx: torch.Tensor,
-        val_idx: torch.Tensor,
-        test_idx: torch.Tensor,
+        split_indices: Dict[str, torch.Tensor],
     ) -> Dict[str, float]:
         model.eval()
         with torch.inference_mode():
@@ -191,9 +204,9 @@ class DFHGNNTrainer:
             probs = torch.softmax(logits, dim=1)
         metrics: Dict[str, float] = {}
         split_tensors = {
-            "train": (probs[train_idx], labels[train_idx]),
-            "val": (probs[val_idx], labels[val_idx]),
-            "test": (probs[test_idx], labels[test_idx]),
+            name: (probs[idx], labels[idx])
+            for name, idx in split_indices.items()
+            if idx.numel() > 0
         }
 
         with ThreadPoolExecutor(max_workers=len(split_tensors)) as executor:
@@ -205,6 +218,32 @@ class DFHGNNTrainer:
                 split_metrics = future.result()
                 metrics.update({f"{split_name}_{k}": v for k, v in split_metrics.items()})
         return metrics
+
+    def evaluate_model(
+        self,
+        model: nn.Module,
+        incidence: torch.Tensor,
+        edge_weights: torch.Tensor,
+        node_features: Optional[torch.Tensor],
+        labels: torch.Tensor,
+        splits: Dict[str, torch.Tensor],
+        timestamps: Optional[torch.Tensor] = None,
+    ) -> Dict[str, float]:
+        deterministic_features = self.feature_bank(
+            incidence, edge_weights, timestamps=timestamps
+        )
+        node_features_prepared = self._prepare_node_features(
+            node_features,
+            deterministic_features.dtype,
+            deterministic_features.shape[0],
+        )
+        x = self._move_to_device(node_features_prepared)
+        z = self._move_to_device(deterministic_features)
+        incidence = self._move_to_device(incidence)
+        edge_weights = self._move_to_device(edge_weights)
+        labels = self._move_to_device(labels)
+        split_indices = {name: self._move_to_device(idx) for name, idx in splits.items()}
+        return self.evaluate(model, x, z, incidence, edge_weights, labels, split_indices)
 
     def _prepare_node_features(
         self,

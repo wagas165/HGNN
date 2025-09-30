@@ -1,0 +1,13 @@
+name: stackoverflow_answers
+root: data/raw/stackoverflow-answers
+files:
+  simplices: hyperedges-stackoverflow-answers.txt
+  labels: node-labels-stackoverflow-answers.txt
+  label_names: label-names-stackoverflow-answers.txt
+metadata:
+  description: "StackOverflow answer interactions with topic annotations"
+  citation: "Ghosh et al., 2019"
+  tasks:
+    - node_classification
+    - hyperedge_prediction
+    - ood_detection
