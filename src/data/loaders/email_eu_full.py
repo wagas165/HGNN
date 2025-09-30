@@ -32,13 +32,22 @@ class EmailEuFullLoader(HypergraphDatasetLoader):
             files.append(self.config.times_file)
         self._check_exists(*files)
 
-        vertices = self._read_vertices(self.root / self.config.vertices_file)
-        simplices = self._read_simplices(self.root / self.config.simplices_file)
+        cardinalities = self._read_cardinalities(self.root / self.config.vertices_file)
+        flat_simplices = self._read_flat_simplices(self.root / self.config.simplices_file)
+
+        total_entries = sum(cardinalities)
+        if total_entries != len(flat_simplices):
+            raise ValueError(
+                "Total simplex entries do not match cardinality counts: "
+                f"expected {total_entries}, got {len(flat_simplices)}"
+            )
+
+        simplices = self._slice_simplices(cardinalities, flat_simplices)
+        num_nodes = self._infer_num_nodes(flat_simplices)
         times = None
         if self.config.times_file:
             times = self._read_times(self.root / self.config.times_file, len(simplices))
 
-        num_nodes = len(vertices)
         incidence = self._build_incidence(num_nodes, simplices)
         edge_weights = torch.ones(incidence.shape[1], dtype=torch.float32)
 
@@ -47,7 +56,7 @@ class EmailEuFullLoader(HypergraphDatasetLoader):
 
         metadata = {
             "num_hyperedges": incidence.shape[1],
-            "avg_cardinality": float(np.mean([len(s) for s in simplices])) if simplices else 0.0,
+            "avg_cardinality": float(np.mean(cardinalities)) if cardinalities else 0.0,
         }
 
         return HypergraphData(
@@ -60,23 +69,35 @@ class EmailEuFullLoader(HypergraphDatasetLoader):
             metadata=metadata,
         )
 
-    def _read_vertices(self, path: Path) -> List[int]:
+    def _read_cardinalities(self, path: Path) -> List[int]:
         with path.open("r", encoding="utf-8") as f:
-            vertices = [int(line.strip()) for line in f if line.strip()]
-        if vertices and min(vertices) != 0:
-            raise ValueError("email-Eu-full vertices are expected to start from 0")
-        if vertices != list(range(len(vertices))):
-            raise ValueError("Vertices must form a contiguous range starting at 0")
-        return vertices
+            return [int(line.strip()) for line in f if line.strip()]
 
-    def _read_simplices(self, path: Path) -> List[List[int]]:
-        simplices: List[List[int]] = []
+    def _read_flat_simplices(self, path: Path) -> List[int]:
+        values: List[int] = []
         with path.open("r", encoding="utf-8") as f:
             for line in f:
-                parts = [int(tok) for tok in line.strip().split() if tok]
-                if len(parts) >= 2:
-                    simplices.append(parts)
+                line = line.strip()
+                if not line:
+                    continue
+                values.extend(int(tok) for tok in line.split())
+        return values
+
+    def _slice_simplices(
+        self, cardinalities: List[int], flat_simplices: List[int]
+    ) -> List[List[int]]:
+        simplices: List[List[int]] = []
+        index = 0
+        for count in cardinalities:
+            next_index = index + count
+            simplices.append(flat_simplices[index:next_index])
+            index = next_index
         return simplices
+
+    def _infer_num_nodes(self, flat_simplices: List[int]) -> int:
+        if not flat_simplices:
+            return 0
+        return max(flat_simplices) + 1
 
     def _read_times(self, path: Path, expected: int) -> torch.Tensor:
         values = []
