@@ -47,6 +47,7 @@ def main() -> None:
     set_seed(SeedConfig(value=int(cfg.get("seed", 42))))
 
     data_cfg = cfg["data"]
+
     try:
         data_root = resolve_dataset_root(
             data_cfg["root"],
@@ -56,6 +57,7 @@ def main() -> None:
     except DatasetRootResolutionError as exc:
         LOGGER.error("%s", exc)
         raise
+
 
     loader = EmailEuFullLoader(
         str(data_root),

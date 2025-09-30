@@ -55,6 +55,7 @@ If none of these locations exists, the script will list every attempted path in
 the error message to aid debugging. Adjust `configs/default.yaml` (see the
 `data` section) or set `HGNN_DATA_ROOT` if your datasets live elsewhere.
 
+
 ### 3. Run training
 
 Train DF-HGNN with the default configuration:
