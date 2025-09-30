@@ -14,7 +14,7 @@ class HypergraphData:
     num_nodes: int
     incidence: torch.Tensor  # dense or sparse N x E
     edge_weights: torch.Tensor
-    node_features: torch.Tensor
+    node_features: Optional[torch.Tensor]
     labels: Optional[torch.Tensor]
     timestamps: Optional[torch.Tensor]
     metadata: Dict[str, object]
