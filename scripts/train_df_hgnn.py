@@ -83,6 +83,8 @@ def main() -> None:
             spectral_topk=cfg["features"]["deterministic"].get("spectral_topk", 32),
             use_spectral=cfg["features"]["deterministic"].get("use_spectral", True),
             use_hodge=cfg["features"]["deterministic"].get("use_hodge", False),
+            use_temporal=cfg["features"]["deterministic"].get("use_temporal", True),
+            quantile_clip=cfg["features"]["deterministic"].get("quantile_clip", 0.01),
             cache_dir=cfg["features"]["deterministic"].get("cache_dir"),
         ),
         optimizer_config=OptimizerConfig(
@@ -102,6 +104,7 @@ def main() -> None:
         labels=data.labels,
         splits={"train": splits.train_idx, "val": splits.val_idx, "test": splits.test_idx},
         num_classes=int(cfg.get("num_classes", data.labels.max().item() + 1)),
+        timestamps=data.timestamps,
     )
 
     report_path = save_metrics_report(metrics, cfg["reporting"].get("dir", "outputs/reports"))
