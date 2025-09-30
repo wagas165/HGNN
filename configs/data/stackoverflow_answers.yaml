@@ -1,9 +1,9 @@
 name: stackoverflow_answers
 root: data/raw/stackoverflow-answers
 files:
-  simplices: hyperedges-stackoverflow-answers.txt
-  labels: node-labels-stackoverflow-answers.txt
-  label_names: label-names-stackoverflow-answers.txt
+  simplices: stackoverflow-answers-hyperedges.txt
+  labels: stackoverflow-answers-node-labels.txt
+  label_names: stackoverflow-answers-label-names.txt
 metadata:
   description: "StackOverflow answer interactions with topic annotations"
   citation: "Ghosh et al., 2019"

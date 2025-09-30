@@ -2,9 +2,7 @@ name: cat_edge_dawn
 root: data/raw/cat-edge-DAWN
 files:
   simplices: cat-edge-DAWN-simplices.txt
-  features: cat-edge-DAWN-node-features.npy
-  labels: cat-edge-DAWN-node-labels.npy
-  times: cat-edge-DAWN-times.txt
+  labels: cat-edge-DAWN-node-labels.txt
 metadata:
   description: "Dynamic attribute-weighted network of collaborative tagging"
   citation: "Wang et al., 2020"

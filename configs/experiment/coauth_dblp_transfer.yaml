@@ -30,8 +30,8 @@ data:
     target_name: stackoverflow_answers
     target_root: data/raw/stackoverflow-answers
     target_files:
-      simplices: hyperedges-stackoverflow-answers.txt
-      labels: node-labels-stackoverflow-answers.txt
+      simplices: stackoverflow-answers-hyperedges.txt
+      labels: stackoverflow-answers-node-labels.txt
     split:
       strategy: stratified
       train_ratio: 0.5

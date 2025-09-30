@@ -36,19 +36,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--features-file",
         type=str,
-        default="cat-edge-DAWN-node-features.npy",
+        default="",
         help="Relative path to node features (optional)",
     )
     parser.add_argument(
         "--labels-file",
         type=str,
-        default="cat-edge-DAWN-node-labels.npy",
-        help="Relative path to node labels (optional)",
+        default="cat-edge-DAWN-node-labels.txt",
+        help="Relative path to node labels",
     )
     parser.add_argument(
         "--times-file",
         type=str,
-        default="cat-edge-DAWN-times.txt",
+        default="",
         help="Relative path to hyperedge timestamps (optional)",
     )
     return parser.parse_args()

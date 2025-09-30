@@ -42,8 +42,8 @@
 | 数据集 | 目录 | 关键文件 | 推荐任务 |
 | --- | --- | --- | --- |
 | email-Eu-full | `data/raw/email-Eu-full/` | `*-nverts.txt`, `*-simplices.txt`, `*-times.txt`, `*-labels.npy` | 节点分类、超边预测 |
-| cat-edge-DAWN | `data/raw/cat-edge-DAWN/` | `cat-edge-DAWN-simplices.txt`, 可选 `cat-edge-DAWN-node-features.npy`, `cat-edge-DAWN-node-labels.npy`, `cat-edge-DAWN-times.txt` | 低标注率节点分类、时间感知预测 |
-| coauth-DBLP-full | `data/raw/coauth-DBLP-full/` | `coauth-DBLP-full-simplices.txt`, 可选 `coauth-DBLP-full-node-features.npy`, `coauth-DBLP-full-node-labels.npy` | 跨域迁移、社区检测 |
-| stackoverflow-answers | `data/raw/stackoverflow-answers/` | `hyperedges-stackoverflow-answers.txt`, `node-labels-stackoverflow-answers.txt`, `label-names-stackoverflow-answers.txt` | OOD 节点分类、超边预测 |
+| cat-edge-DAWN | `data/raw/cat-edge-DAWN/` | `cat-edge-DAWN-simplices.txt`, `cat-edge-DAWN-node-labels.txt` | 低标注率节点分类、时间感知预测 |
+| coauth-DBLP-full | `data/raw/coauth-DBLP-full/` | `coauth-DBLP-full-simplices.txt`, `coauth-DBLP-full-node-labels.txt`, `coauth-DBLP-full-times.txt` | 跨域迁移、社区检测 |
+| stackoverflow-answers | `data/raw/stackoverflow-answers/` | `stackoverflow-answers-hyperedges.txt`, `stackoverflow-answers-node-labels.txt`, `stackoverflow-answers-label-names.txt` | OOD 节点分类、超边预测 |
 
 > 注意：仓库中以 Git LFS 指针形式存储的大文件需要在本地执行 `git lfs pull` 后方可由上述脚本读取；未提供的可选文件请在配置中将对应条目设为 `null`。

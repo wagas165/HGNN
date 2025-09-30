@@ -2,8 +2,8 @@ name: coauth_dblp_full
 root: data/raw/coauth-DBLP-full
 files:
   simplices: coauth-DBLP-full-simplices.txt
-  features: coauth-DBLP-full-node-features.npy
-  labels: coauth-DBLP-full-node-labels.npy
+  labels: coauth-DBLP-full-node-labels.txt
+  times: coauth-DBLP-full-times.txt
 metadata:
   description: "Full DBLP co-authorship hypergraph with publication venues"
   citation: "Li et al., 2021"

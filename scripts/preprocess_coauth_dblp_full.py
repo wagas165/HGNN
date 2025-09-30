@@ -36,14 +36,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--features-file",
         type=str,
-        default="coauth-DBLP-full-node-features.npy",
+        default="",
         help="Relative path to node features (optional)",
     )
     parser.add_argument(
         "--labels-file",
         type=str,
-        default="coauth-DBLP-full-node-labels.npy",
-        help="Relative path to node labels (optional)",
+        default="coauth-DBLP-full-node-labels.txt",
+        help="Relative path to node labels",
     )
     parser.add_argument(
         "--times-file",
