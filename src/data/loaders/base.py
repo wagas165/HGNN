@@ -24,7 +24,9 @@ class HypergraphDatasetLoader(ABC):
     """Abstract loader for hypergraph datasets."""
 
     def __init__(self, root: str) -> None:
-        self.root = Path(root)
+        self.root = Path(root).expanduser()
+        if not self.root.is_absolute():
+            self.root = self.root.resolve()
 
     @abstractmethod
     def load(self) -> HypergraphData:

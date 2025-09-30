@@ -41,10 +41,20 @@ and unpack the dataset into `data/raw/email-Eu-full` so that the directory conta
 - `email-Eu-full-times.txt`
 - (optional) a label file if you have custom supervision
 
-If you previously stored raw assets under `src/data/raw/…`, the training script will
-automatically fall back to that legacy location before raising a missing-file error.
-For any other dataset layout or extra metadata, update `configs/default.yaml`
-accordingly (see the `data` section).
+The training script resolves dataset directories in the following order:
+
+1. An absolute path provided in the configuration.
+2. The directory that contains the referenced configuration file (allowing
+   per-experiment data folders).
+3. A path pointed to by the `HGNN_DATA_ROOT` environment variable (either the
+   dataset root itself or a parent directory).
+4. `data/raw/...` under the project root.
+5. The legacy `src/data/raw/...` tree for backwards compatibility.
+
+If none of these locations exists, the script will list every attempted path in
+the error message to aid debugging. Adjust `configs/default.yaml` (see the
+`data` section) or set `HGNN_DATA_ROOT` if your datasets live elsewhere.
+
 
 ### 3. Run training
 

@@ -14,6 +14,7 @@ import torch
 from omegaconf import OmegaConf
 
 from src.common.logging import setup_logging, get_logger
+from src.common.path import DatasetRootResolutionError, resolve_dataset_root
 from src.common.seed import SeedConfig, set_seed
 from src.data.loaders.email_eu_full import EmailEuFullConfig, EmailEuFullLoader
 from src.data.transforms.split import DataSplits, SplitConfig, create_splits
@@ -40,31 +41,22 @@ def load_config(path: str) -> dict:
 def main() -> None:
     setup_logging()
     args = parse_args()
-    cfg = load_config(args.config)
+    config_path = Path(args.config).expanduser().resolve()
+    cfg = load_config(str(config_path))
 
     set_seed(SeedConfig(value=int(cfg.get("seed", 42))))
 
     data_cfg = cfg["data"]
-    data_root = Path(data_cfg["root"]).expanduser()
-    if not data_root.is_absolute():
 
-        candidates = [PROJECT_ROOT / data_root]
-        # Support datasets kept under ``src/`` for backward compatibility with
-        # earlier drafts where raw assets lived alongside library code.
-        candidates.append(PROJECT_ROOT / "src" / data_root)
-
-        resolved_root = None
-        for candidate in candidates:
-            if candidate.exists():
-                resolved_root = candidate.resolve()
-                break
-
-        if resolved_root is None:
-            # Fall back to the first candidate so downstream checks still
-            # produce a helpful error message that lists the expected files.
-            resolved_root = candidates[0].resolve()
-
-        data_root = resolved_root
+    try:
+        data_root = resolve_dataset_root(
+            data_cfg["root"],
+            PROJECT_ROOT,
+            config_path=config_path,
+        )
+    except DatasetRootResolutionError as exc:
+        LOGGER.error("%s", exc)
+        raise
 
 
     loader = EmailEuFullLoader(
