@@ -47,6 +47,7 @@ def main() -> None:
     data_cfg = cfg["data"]
     data_root = Path(data_cfg["root"]).expanduser()
     if not data_root.is_absolute():
+
         candidates = [PROJECT_ROOT / data_root]
         # Support datasets kept under ``src/`` for backward compatibility with
         # earlier drafts where raw assets lived alongside library code.
@@ -64,6 +65,7 @@ def main() -> None:
             resolved_root = candidates[0].resolve()
 
         data_root = resolved_root
+
 
     loader = EmailEuFullLoader(
         str(data_root),
