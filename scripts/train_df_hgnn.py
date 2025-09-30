@@ -96,6 +96,7 @@ def main() -> None:
             device=cfg["trainer"].get("device", "auto"),
             amp=cfg["trainer"].get("amp", False),
             early_stopping_patience=cfg["trainer"].get("early_stopping_patience", 20),
+            pin_memory=cfg["trainer"].get("pin_memory", True),
         ),
         model_config=cfg["model"],
         feature_config=DeterministicFeatureConfig(
@@ -105,6 +106,9 @@ def main() -> None:
             use_temporal=cfg["features"]["deterministic"].get("use_temporal", True),
             quantile_clip=cfg["features"]["deterministic"].get("quantile_clip", 0.01),
             cache_dir=cfg["features"]["deterministic"].get("cache_dir"),
+            device=cfg["features"]["deterministic"].get("device", "auto"),
+            precision=cfg["features"]["deterministic"].get("precision", "float32"),
+            expansion_chunk_size=cfg["features"]["deterministic"].get("expansion_chunk_size"),
         ),
         optimizer_config=OptimizerConfig(
             lr=cfg["trainer"]["lr"],
