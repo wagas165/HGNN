@@ -100,6 +100,12 @@ class DeterministicFeatureBank:
             combined = torch.cat(features, dim=1)
             combined = robust_standardize(combined, self.config.quantile_clip)
 
+        # ``torch.inference_mode`` produces tensors that cannot participate in
+        # autograd.  Downstream training reuses the deterministic features as
+        # standard tensors, so make an explicit clone outside the context to
+        # drop the inference flag and gradients.
+        combined = combined.clone().detach()
+
         self._save_cache(incidence, timestamps, combined)
         return combined
 
