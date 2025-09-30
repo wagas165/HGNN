@@ -16,6 +16,7 @@ trainer:
   device: auto
   amp: true
   early_stopping_patience: 20
+  pin_memory: true
   checkpoint:
     enable: true
     dir: ${work_dir}/checkpoints
@@ -37,6 +38,9 @@ features:
     use_temporal: true
     quantile_clip: 0.01
     cache_dir: ${work_dir}/features
+    device: auto
+    precision: float32
+    expansion_chunk_size: null
 
 optimizer:
   adam:

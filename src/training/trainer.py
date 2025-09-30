@@ -1,14 +1,13 @@
 """Training pipeline for DF-HGNN."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Dict, Optional
 
 import torch
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
-from torch.utils.data import DataLoader, TensorDataset
 
 from src.common.logging import get_logger
 from src.common.seed import get_device
@@ -37,6 +36,7 @@ class TrainerConfig:
     device: str
     amp: bool
     early_stopping_patience: int
+    pin_memory: bool = True
 
 
 class DFHGNNTrainer:
@@ -91,15 +91,16 @@ class DFHGNNTrainer:
 
         LOGGER.info("Model initialized with %s parameters", sum(p.numel() for p in model.parameters()))
 
-        train_idx = splits["train"].to(self.device)
-        val_idx = splits["val"].to(self.device)
-        test_idx = splits["test"].to(self.device)
+        train_idx = self._move_to_device(splits["train"])
+        val_idx = self._move_to_device(splits["val"])
+        test_idx = self._move_to_device(splits["test"])
 
-        x = node_features.to(self.device)
-        z = deterministic_features.to(self.device)
-        incidence = incidence.to(self.device)
-        edge_weights = edge_weights.to(self.device)
-        labels = labels.to(self.device)
+        x = self._move_to_device(node_features)
+        z = self._move_to_device(deterministic_features)
+        del deterministic_features
+        incidence = self._move_to_device(incidence)
+        edge_weights = self._move_to_device(edge_weights)
+        labels = self._move_to_device(labels)
 
         scaler = GradScaler(enabled=self.trainer_config.amp)
         optimizer_cfg = OptimizerConfig(
@@ -133,7 +134,9 @@ class DFHGNNTrainer:
             scaler.step(adam)
             scaler.update()
 
-            metrics = self.evaluate(model, x, z, incidence, edge_weights, labels, train_idx, val_idx, test_idx)
+            metrics = self.evaluate(
+                model, x, z, incidence, edge_weights, labels, train_idx, val_idx, test_idx
+            )
             LOGGER.info(
                 "Epoch %d | loss=%.4f | val_accuracy=%.4f",
                 epoch + 1,
@@ -183,13 +186,24 @@ class DFHGNNTrainer:
         test_idx: torch.Tensor,
     ) -> Dict[str, float]:
         model.eval()
-        with torch.no_grad():
+        with torch.inference_mode():
             logits, _ = model(x, z, incidence, edge_weights)
             probs = torch.softmax(logits, dim=1)
         metrics: Dict[str, float] = {}
-        for split_name, idx in ("train", train_idx), ("val", val_idx), ("test", test_idx):
-            split_metrics = self.metrics.compute(probs[idx], labels[idx])
-            metrics.update({f"{split_name}_{k}": v for k, v in split_metrics.items()})
+        split_tensors = {
+            "train": (probs[train_idx], labels[train_idx]),
+            "val": (probs[val_idx], labels[val_idx]),
+            "test": (probs[test_idx], labels[test_idx]),
+        }
+
+        with ThreadPoolExecutor(max_workers=len(split_tensors)) as executor:
+            futures = {
+                executor.submit(self.metrics.compute, tensors[0], tensors[1]): name
+                for name, tensors in split_tensors.items()
+            }
+            for future, split_name in futures.items():
+                split_metrics = future.result()
+                metrics.update({f"{split_name}_{k}": v for k, v in split_metrics.items()})
         return metrics
 
     def _prepare_node_features(
@@ -207,3 +221,10 @@ class DFHGNNTrainer:
             node_features, self.feature_bank.config.quantile_clip
         )
         return processed
+
+    def _move_to_device(self, tensor: torch.Tensor) -> torch.Tensor:
+        if tensor.device == self.device:
+            return tensor
+        if self.device.type == "cuda" and tensor.device.type == "cpu" and self.trainer_config.pin_memory:
+            tensor = tensor.pin_memory()
+        return tensor.to(self.device, non_blocking=self.device.type == "cuda")
