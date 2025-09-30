@@ -39,7 +39,16 @@ and unpack the dataset into `data/raw/email-Eu-full` so that the directory conta
 - `email-Eu-full-nverts.txt`
 - `email-Eu-full-simplices.txt`
 - `email-Eu-full-times.txt`
-- (optional) a label file if you have custom supervision
+- `email-Eu-full-labels.json` (textual copy of the degree-quantile node classes)
+- `email-Eu-full-labels.npy` (materialised automatically from the JSON when needed)
+
+> **Why the label file matters:**
+> DF-HGNN's node-classification recipes assume supervised targets. We provide
+> `email-Eu-full-labels.json`, which bins nodes into four classes by email hyperedge
+> participation. Custom labels may be substituted, but the preprocessing script will
+> materialise the binary NumPy array (`email-Eu-full-labels.npy`) from the JSON source
+> and raise an error if neither artifact is present. This avoids silently training
+> without supervision while keeping the tracked label data human-readable.
 
 The training script resolves dataset directories in the following order:
 

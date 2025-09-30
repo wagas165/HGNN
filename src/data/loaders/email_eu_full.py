@@ -133,7 +133,27 @@ class EmailEuFullLoader(HypergraphDatasetLoader):
     def _load_labels(self, num_nodes: int) -> Optional[torch.Tensor]:
         if self.config.label_file:
             label_path = self.root / self.config.label_file
-            if label_path.exists():
-                labels = np.load(label_path)
-                return torch.tensor(labels, dtype=torch.long)
+            if not label_path.exists():
+                json_fallback = label_path.with_suffix(".json")
+                if json_fallback.exists():
+                    with json_fallback.open("r", encoding="utf-8") as f:
+                        raw_labels = json.load(f)
+                    labels_array = np.asarray(raw_labels, dtype=np.int64)
+                    if labels_array.ndim != 1:
+                        raise ValueError(
+                            "Email-Eu-full labels JSON must describe a 1D array of class ids"
+                        )
+                    np.save(label_path, labels_array)
+                else:
+                    raise FileNotFoundError(
+                        f"Label file {label_path} (or JSON fallback) does not exist"
+                    )
+
+            labels = np.load(label_path)
+            if labels.shape[0] != num_nodes:
+                raise ValueError(
+                    "Label array length does not match inferred node count: "
+                    f"expected {num_nodes}, got {labels.shape[0]}"
+                )
+            return torch.tensor(labels, dtype=torch.long)
         return None
