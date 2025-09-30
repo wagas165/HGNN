@@ -47,7 +47,25 @@ def main() -> None:
     data_cfg = cfg["data"]
     data_root = Path(data_cfg["root"]).expanduser()
     if not data_root.is_absolute():
-        data_root = (PROJECT_ROOT / data_root).resolve()
+
+        candidates = [PROJECT_ROOT / data_root]
+        # Support datasets kept under ``src/`` for backward compatibility with
+        # earlier drafts where raw assets lived alongside library code.
+        candidates.append(PROJECT_ROOT / "src" / data_root)
+
+        resolved_root = None
+        for candidate in candidates:
+            if candidate.exists():
+                resolved_root = candidate.resolve()
+                break
+
+        if resolved_root is None:
+            # Fall back to the first candidate so downstream checks still
+            # produce a helpful error message that lists the expected files.
+            resolved_root = candidates[0].resolve()
+
+        data_root = resolved_root
+
 
     loader = EmailEuFullLoader(
         str(data_root),

@@ -41,8 +41,10 @@ and unpack the dataset into `data/raw/email-Eu-full` so that the directory conta
 - `email-Eu-full-times.txt`
 - (optional) a label file if you have custom supervision
 
-If you use a different dataset location or provide additional metadata, update
-`configs/default.yaml` accordingly (see the `data` section).
+If you previously stored raw assets under `src/data/raw/…`, the training script will
+automatically fall back to that legacy location before raising a missing-file error.
+For any other dataset layout or extra metadata, update `configs/default.yaml`
+accordingly (see the `data` section).
 
 ### 3. Run training
 
