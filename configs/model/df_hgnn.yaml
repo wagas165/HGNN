@@ -1,0 +1,7 @@
+name: df_hgnn
+hidden_dim: 128
+dropout: 0.3
+conv_type: mp
+chebyshev_order: 2
+lambda_align: 0.1
+lambda_gate: 0.001

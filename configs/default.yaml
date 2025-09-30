@@ -1,0 +1,66 @@
+experiment: baseline
+seed: 42
+work_dir: outputs
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+trainer:
+  max_epochs: 150
+  adam_epochs: 100
+  lbfgs_epochs: 25
+  lr: 0.001
+  weight_decay: 0.0005
+  grad_clip: 5.0
+  device: auto
+  amp: true
+  early_stopping_patience: 20
+  checkpoint:
+    enable: true
+    dir: ${work_dir}/checkpoints
+
+model:
+  name: df_hgnn
+  hidden_dim: 128
+  dropout: 0.3
+  conv_type: mp
+  chebyshev_order: 2
+  lambda_align: 0.1
+  lambda_gate: 0.001
+
+features:
+  deterministic:
+    spectral_topk: 32
+    use_spectral: true
+    use_hodge: false
+    cache_dir: ${work_dir}/features
+
+optimizer:
+  adam:
+    betas: [0.9, 0.999]
+  lbfgs:
+    history_size: 10
+    line_search: strong_wolfe
+
+data:
+  name: email_eu_full
+  root: data/raw/email-Eu-full
+  task: node_classification
+  split:
+    strategy: stratified
+    train_ratio: 0.6
+    val_ratio: 0.2
+    test_ratio: 0.2
+    num_splits: 5
+  batch_size: 0
+  num_workers: 0
+
+metrics:
+  - name: accuracy
+  - name: macro_f1
+  - name: roc_auc
+
+reporting:
+  enable: true
+  dir: ${work_dir}/reports

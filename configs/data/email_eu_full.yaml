@@ -1,0 +1,15 @@
+name: email_eu_full
+root: data/raw/email-Eu-full
+files:
+  vertices: email-Eu-full-nverts.txt
+  simplices: email-Eu-full-simplices.txt
+  times: email-Eu-full-times.txt
+num_features: null
+num_classes: null
+label_column: null
+metadata:
+  description: "EU research institution email communication hypergraph"
+  citation: "Paranjape et al., 2017"
+  tasks:
+    - node_classification
+    - hyperedge_prediction
