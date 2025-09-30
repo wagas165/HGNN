@@ -45,8 +45,12 @@ def main() -> None:
     set_seed(SeedConfig(value=int(cfg.get("seed", 42))))
 
     data_cfg = cfg["data"]
+    data_root = Path(data_cfg["root"]).expanduser()
+    if not data_root.is_absolute():
+        data_root = (PROJECT_ROOT / data_root).resolve()
+
     loader = EmailEuFullLoader(
-        data_cfg["root"],
+        str(data_root),
         EmailEuFullConfig(
             vertices_file=data_cfg.get("files", {}).get("vertices", "email-Eu-full-nverts.txt"),
             simplices_file=data_cfg.get("files", {}).get("simplices", "email-Eu-full-simplices.txt"),
