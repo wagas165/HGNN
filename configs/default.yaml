@@ -34,6 +34,8 @@ features:
     spectral_topk: 32
     use_spectral: true
     use_hodge: false
+    use_temporal: true
+    quantile_clip: 0.01
     cache_dir: ${work_dir}/features
 
 optimizer:

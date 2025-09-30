@@ -3,7 +3,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import torch
 from omegaconf import OmegaConf
@@ -40,8 +45,12 @@ def main() -> None:
     set_seed(SeedConfig(value=int(cfg.get("seed", 42))))
 
     data_cfg = cfg["data"]
+    data_root = Path(data_cfg["root"]).expanduser()
+    if not data_root.is_absolute():
+        data_root = (PROJECT_ROOT / data_root).resolve()
+
     loader = EmailEuFullLoader(
-        data_cfg["root"],
+        str(data_root),
         EmailEuFullConfig(
             vertices_file=data_cfg.get("files", {}).get("vertices", "email-Eu-full-nverts.txt"),
             simplices_file=data_cfg.get("files", {}).get("simplices", "email-Eu-full-simplices.txt"),
@@ -83,6 +92,8 @@ def main() -> None:
             spectral_topk=cfg["features"]["deterministic"].get("spectral_topk", 32),
             use_spectral=cfg["features"]["deterministic"].get("use_spectral", True),
             use_hodge=cfg["features"]["deterministic"].get("use_hodge", False),
+            use_temporal=cfg["features"]["deterministic"].get("use_temporal", True),
+            quantile_clip=cfg["features"]["deterministic"].get("quantile_clip", 0.01),
             cache_dir=cfg["features"]["deterministic"].get("cache_dir"),
         ),
         optimizer_config=OptimizerConfig(
@@ -102,6 +113,7 @@ def main() -> None:
         labels=data.labels,
         splits={"train": splits.train_idx, "val": splits.val_idx, "test": splits.test_idx},
         num_classes=int(cfg.get("num_classes", data.labels.max().item() + 1)),
+        timestamps=data.timestamps,
     )
 
     report_path = save_metrics_report(metrics, cfg["reporting"].get("dir", "outputs/reports"))
