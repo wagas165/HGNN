@@ -13,7 +13,11 @@ from torch.utils.data import DataLoader, TensorDataset
 from src.common.logging import get_logger
 from src.common.seed import get_device
 from src.evaluation.metrics import MetricRegistry
-from src.features.deterministic_bank import DeterministicFeatureBank, DeterministicFeatureConfig
+from src.features.deterministic_bank import (
+    DeterministicFeatureBank,
+    DeterministicFeatureConfig,
+    robust_standardize,
+)
 from src.models.registry import ModelFactoryInput, create_model
 from src.training.callbacks import EarlyStoppingState
 from src.training.optimizers import OptimizerConfig, build_adam, build_lbfgs
@@ -55,12 +59,18 @@ class DFHGNNTrainer:
         self,
         incidence: torch.Tensor,
         edge_weights: torch.Tensor,
-        node_features: torch.Tensor,
+        node_features: Optional[torch.Tensor],
         labels: torch.Tensor,
         splits: Dict[str, torch.Tensor],
         num_classes: int,
+        timestamps: Optional[torch.Tensor] = None,
     ) -> Dict[str, float]:
-        deterministic_features = self.feature_bank(incidence, edge_weights)
+        deterministic_features = self.feature_bank(
+            incidence, edge_weights, timestamps=timestamps
+        )
+        node_features = self._prepare_node_features(
+            node_features, deterministic_features.dtype, deterministic_features.shape[0]
+        )
         in_dim = node_features.shape[1]
         det_dim = deterministic_features.shape[1]
         model = create_model(
@@ -75,6 +85,7 @@ class DFHGNNTrainer:
                 chebyshev_order=int(self.model_config.get("chebyshev_order", 2)),
                 lambda_align=float(self.model_config.get("lambda_align", 0.1)),
                 lambda_gate=float(self.model_config.get("lambda_gate", 0.001)),
+                fusion_dim=self.model_config.get("fusion_dim"),
             ),
         ).to(self.device)
 
@@ -140,10 +151,17 @@ class DFHGNNTrainer:
 
         def closure() -> torch.Tensor:
             lbfgs.zero_grad()
-            logits, _ = model(x, z, incidence, edge_weights)
+            logits, gate = model(x, z, incidence, edge_weights)
             loss = criterion(logits[train_idx], labels[train_idx])
-            loss.backward()
-            return loss
+            align_loss = model.alignment_loss(x, z)
+            gate_loss = model.gate_regularization(gate)
+            total_loss = (
+                loss
+                + self.model_config.get("lambda_align", 0.1) * align_loss
+                + self.model_config.get("lambda_gate", 0.001) * gate_loss
+            )
+            total_loss.backward()
+            return total_loss
 
         for _ in range(self.trainer_config.lbfgs_epochs):
             lbfgs.step(closure)
@@ -173,3 +191,19 @@ class DFHGNNTrainer:
             split_metrics = self.metrics.compute(probs[idx], labels[idx])
             metrics.update({f"{split_name}_{k}": v for k, v in split_metrics.items()})
         return metrics
+
+    def _prepare_node_features(
+        self,
+        node_features: Optional[torch.Tensor],
+        dtype: torch.dtype,
+        num_nodes: int,
+    ) -> torch.Tensor:
+        if node_features is None or node_features.numel() == 0:
+            return torch.zeros((num_nodes, 0), dtype=dtype)
+        node_features = node_features.to(dtype=dtype)
+        if node_features.dim() == 1:
+            node_features = node_features.unsqueeze(1)
+        processed = robust_standardize(
+            node_features, self.feature_bank.config.quantile_clip
+        )
+        return processed
