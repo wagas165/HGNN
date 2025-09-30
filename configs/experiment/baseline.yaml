@@ -1,0 +1,14 @@
+defaults:
+  - override /model: df_hgnn
+  - override /data: email_eu_full
+
+trainer:
+  max_epochs: 120
+  adam_epochs: 80
+  lbfgs_epochs: 20
+  early_stopping_patience: 15
+
+model:
+  hidden_dim: 128
+  dropout: 0.25
+  conv_type: mp
