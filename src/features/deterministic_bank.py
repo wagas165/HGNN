@@ -184,10 +184,16 @@ class DeterministicFeatureBank:
     def _normalized_operator(self, incidence: Tensor, edge_weights: Tensor) -> Tensor:
         node_degree = (incidence @ edge_weights.unsqueeze(1)).flatten()
         edge_degree = incidence.sum(dim=0)
-        d_v_inv_sqrt = torch.diag(torch.pow(node_degree.clamp(min=1e-6), -0.5))
-        d_e_inv = torch.diag(torch.pow(edge_degree.clamp(min=1.0), -1.0))
-        w_diag = torch.diag(edge_weights)
-        return d_v_inv_sqrt @ incidence @ w_diag @ d_e_inv @ incidence.t() @ d_v_inv_sqrt
+
+        # Avoid forming large diagonal matrices explicitly to keep memory usage
+        # manageable for hypergraphs with many nodes or edges.
+        d_v_inv_sqrt = torch.pow(node_degree.clamp(min=1e-6), -0.5)
+        d_e_inv = torch.pow(edge_degree.clamp(min=1.0), -1.0)
+
+        weighted_incidence = incidence * (edge_weights * d_e_inv).unsqueeze(0)
+        normalized = weighted_incidence @ incidence.t()
+        normalized = d_v_inv_sqrt.unsqueeze(1) * normalized * d_v_inv_sqrt.unsqueeze(0)
+        return normalized
 
     def _cache_path(
         self, incidence: Tensor, timestamps: Optional[Tensor]
