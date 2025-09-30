@@ -16,8 +16,8 @@ from omegaconf import OmegaConf
 from src.common.logging import setup_logging, get_logger
 from src.common.path import DatasetRootResolutionError, resolve_dataset_root
 from src.common.seed import SeedConfig, set_seed
-from src.data.loaders.email_eu_full import EmailEuFullConfig, EmailEuFullLoader
-from src.data.transforms.split import DataSplits, SplitConfig, create_splits
+from src.data.loaders import create_loader
+from src.data.transforms.split import SplitConfig, create_splits
 from src.evaluation.metrics import MetricConfig, MetricRegistry
 from src.evaluation.reporting import save_metrics_report
 from src.features.deterministic_bank import DeterministicFeatureConfig
@@ -59,16 +59,7 @@ def main() -> None:
         raise
 
 
-    loader = EmailEuFullLoader(
-        str(data_root),
-        EmailEuFullConfig(
-            vertices_file=data_cfg.get("files", {}).get("vertices", "email-Eu-full-nverts.txt"),
-            simplices_file=data_cfg.get("files", {}).get("simplices", "email-Eu-full-simplices.txt"),
-            times_file=data_cfg.get("files", {}).get("times", "email-Eu-full-times.txt"),
-            feature_cache=data_cfg.get("feature_cache"),
-            label_file=data_cfg.get("label_file"),
-        ),
-    )
+    loader = create_loader(data_cfg.get("name", "email_eu_full"), str(data_root), data_cfg)
     data = loader.load()
     if data.labels is None:
         raise ValueError("Dataset must provide labels for supervised training")
@@ -80,10 +71,32 @@ def main() -> None:
             train_ratio=data_cfg.get("split", {}).get("train_ratio", 0.6),
             val_ratio=data_cfg.get("split", {}).get("val_ratio", 0.2),
             test_ratio=data_cfg.get("split", {}).get("test_ratio", 0.2),
+            ood_ratio=data_cfg.get("split", {}).get("ood_ratio", 0.0),
             random_state=cfg.get("seed", 42),
         ),
         num_nodes=data.num_nodes,
     )
+
+    label_fraction = float(data_cfg.get("label_fraction", 1.0))
+    if label_fraction <= 0 or label_fraction > 1:
+        raise ValueError("data.label_fraction must be in (0, 1]")
+
+    train_idx = splits.train_idx
+    if label_fraction < 1.0:
+        generator = torch.Generator().manual_seed(int(cfg.get("seed", 42)))
+        num_train = train_idx.shape[0]
+        keep = max(1, int(round(num_train * label_fraction)))
+        perm = torch.randperm(num_train, generator=generator)
+        train_idx = train_idx[perm[:keep]]
+        LOGGER.info("Using %d/%d training nodes (%.2f%%)", keep, num_train, 100 * label_fraction)
+
+    split_tensors = {
+        "train": train_idx,
+        "val": splits.val_idx,
+        "test": splits.test_idx,
+    }
+    if splits.ood_idx is not None and splits.ood_idx.numel() > 0:
+        split_tensors["ood"] = splits.ood_idx
 
     trainer = DFHGNNTrainer(
         trainer_config=TrainerConfig(
@@ -120,15 +133,72 @@ def main() -> None:
         metrics=MetricRegistry([MetricConfig(name=m["name"]) for m in cfg.get("metrics", [])]),
     )
 
-    metrics = trainer.train(
+    metrics, model = trainer.train(
         incidence=data.incidence,
         edge_weights=data.edge_weights,
         node_features=data.node_features,
         labels=data.labels,
-        splits={"train": splits.train_idx, "val": splits.val_idx, "test": splits.test_idx},
+        splits=split_tensors,
         num_classes=int(cfg.get("num_classes", data.labels.max().item() + 1)),
         timestamps=data.timestamps,
     )
+
+    transfer_cfg = data_cfg.get("transfer")
+    if transfer_cfg:
+        target_name = transfer_cfg.get("target_name")
+        if not target_name:
+            raise ValueError("data.transfer.target_name must be provided when transfer block is set")
+        target_root = transfer_cfg.get("target_root", data_cfg.get("root"))
+        try:
+            resolved_target_root = resolve_dataset_root(target_root, PROJECT_ROOT, config_path=config_path)
+        except DatasetRootResolutionError as exc:
+            LOGGER.error("%s", exc)
+            raise
+
+        target_loader_cfg = {}
+        if "target_config" in transfer_cfg:
+            target_loader_cfg.update(transfer_cfg["target_config"])
+        if "target_files" in transfer_cfg:
+            target_loader_cfg["files"] = transfer_cfg["target_files"]
+        if "label_file" in transfer_cfg:
+            target_loader_cfg["label_file"] = transfer_cfg["label_file"]
+
+        target_loader = create_loader(target_name, str(resolved_target_root), target_loader_cfg)
+        target_data = target_loader.load()
+        if target_data.labels is None:
+            raise ValueError("Transfer target dataset must provide labels for evaluation")
+
+        transfer_split_dict = transfer_cfg.get("split", {})
+        target_splits = create_splits(
+            labels=target_data.labels,
+            config=SplitConfig(
+                strategy=transfer_split_dict.get("strategy", "stratified"),
+                train_ratio=transfer_split_dict.get("train_ratio", 0.6),
+                val_ratio=transfer_split_dict.get("val_ratio", 0.2),
+                test_ratio=transfer_split_dict.get("test_ratio", 0.2),
+                ood_ratio=transfer_split_dict.get("ood_ratio", 0.0),
+                random_state=cfg.get("seed", 42),
+            ),
+            num_nodes=target_data.num_nodes,
+        )
+        transfer_split_tensors = {
+            "train": target_splits.train_idx,
+            "val": target_splits.val_idx,
+            "test": target_splits.test_idx,
+        }
+        if target_splits.ood_idx is not None and target_splits.ood_idx.numel() > 0:
+            transfer_split_tensors["ood"] = target_splits.ood_idx
+
+        transfer_metrics = trainer.evaluate_model(
+            model,
+            target_data.incidence,
+            target_data.edge_weights,
+            target_data.node_features,
+            target_data.labels,
+            transfer_split_tensors,
+            timestamps=target_data.timestamps,
+        )
+        metrics.update({f"transfer_{k}": v for k, v in transfer_metrics.items()})
 
     report_path = save_metrics_report(metrics, cfg["reporting"].get("dir", "outputs/reports"))
     LOGGER.info("Saved metrics report to %s", report_path)

@@ -1,0 +1,41 @@
+defaults:
+  - override /model: df_hgnn
+  - override /data: coauth_dblp_full
+
+trainer:
+  max_epochs: 180
+  adam_epochs: 120
+  lbfgs_epochs: 40
+  early_stopping_patience: 25
+
+model:
+  hidden_dim: 192
+  dropout: 0.3
+  conv_type: mp
+
+features:
+  deterministic:
+    use_temporal: false
+    use_spectral: true
+    spectral_topk: 48
+
+data:
+  split:
+    strategy: stratified
+    train_ratio: 0.6
+    val_ratio: 0.2
+    test_ratio: 0.2
+    num_splits: 3
+  transfer:
+    target_name: stackoverflow_answers
+    target_root: data/raw/stackoverflow-answers
+    target_files:
+      simplices: hyperedges-stackoverflow-answers.txt
+      labels: node-labels-stackoverflow-answers.txt
+    split:
+      strategy: stratified
+      train_ratio: 0.5
+      val_ratio: 0.25
+      test_ratio: 0.25
+
+notes: "Cross-domain evaluation: train on DBLP coauthorship, evaluate on StackOverflow"
