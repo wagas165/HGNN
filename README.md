@@ -80,12 +80,30 @@ a metrics report (`.json`) summarising train/validation/test performance.
 
 - Adjust model hyperparameters (hidden size, convolution type, alignment/gating penalties)
 in the `model` section of the config.
-- Enable or disable deterministic feature families under `features.deterministic` and
-  control where they are computed via `device` (use `auto` to prefer CUDA) and
+- Enable or disable deterministic feature families under `features.deterministic` using
+  the `enabled` flag, and control where they are computed via `device` (use `auto` to
+  prefer CUDA) and
   `expansion_chunk_size` for large hypergraphs.
 - Edit `trainer` to change the Adam/L-BFGS schedule or gradient clipping.
 - Toggle `trainer.pin_memory` to optimise host-to-device transfers when running on GPU.
 - Modify `data.split` to alter the train/validation/test ratios or use random splits.
+
+## Baseline implementations
+
+Alongside DF-HGNN we provide three baseline encoders that share the same feature pipeline and
+training loop (invoke them with `python scripts/train_df_hgnn.py --config <experiment.yaml>`):
+
+- **AllSet Transformer** (Chien et al., NeurIPS 2022) relies on multi-head attention between
+  node and hyperedge representations. Our default run uses a 160-dimensional hidden size, three
+  transformer blocks with four heads, and an MLP expansion ratio of 2.0.【F:configs/experiment/allset_transformer.yaml†L1-L15】
+- **UniGNN** (Huang et al., NeurIPS 2021) couples edge and node updates with residual diffusion.
+  The reference configuration keeps three stacked layers with dropout 0.3 to mimic the published
+  setup.【F:configs/experiment/unignn.yaml†L1-L14】
+- **HyperGCN** (Yadati et al., NeurIPS 2019) builds a symmetric normalised Laplacian from the
+  incidence matrix and applies three diffusion layers with 0.25 dropout.【F:configs/experiment/hypergcn.yaml†L1-L14】
+
+All three variants depend only on PyTorch (no extra third-party packages) and reuse the deterministic
+feature computation shipped with DF-HGNN, enabling apples-to-apples comparisons across baselines.
 
 ### 5. Documentation & further reading
 

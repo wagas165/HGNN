@@ -1,0 +1,4 @@
+name: hypergcn
+hidden_dim: 128
+dropout: 0.25
+num_layers: 2

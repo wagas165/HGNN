@@ -51,7 +51,12 @@ class DFHGNNTrainer:
         metrics: MetricRegistry,
     ) -> None:
         self.trainer_config = trainer_config
-        self.feature_bank = DeterministicFeatureBank(feature_config)
+        self.feature_config = feature_config
+        self.feature_bank = (
+            DeterministicFeatureBank(feature_config)
+            if feature_config.enabled
+            else None
+        )
         self.optimizer_config = optimizer_config
         self.metrics = metrics
         self.device = get_device(trainer_config.device)
@@ -75,6 +80,17 @@ class DFHGNNTrainer:
         )
         in_dim = node_features.shape[1]
         det_dim = deterministic_features.shape[1]
+        reserved_keys = {
+            "name",
+            "hidden_dim",
+            "dropout",
+            "conv_type",
+            "chebyshev_order",
+            "lambda_align",
+            "lambda_gate",
+            "fusion_dim",
+        }
+        extras = {k: v for k, v in self.model_config.items() if k not in reserved_keys}
         model = create_model(
             name=self.model_config["name"],
             config=ModelFactoryInput(
@@ -88,6 +104,7 @@ class DFHGNNTrainer:
                 lambda_align=float(self.model_config.get("lambda_align", 0.1)),
                 lambda_gate=float(self.model_config.get("lambda_gate", 0.001)),
                 fusion_dim=self.model_config.get("fusion_dim"),
+                extras=extras,
             ),
         ).to(self.device)
 
@@ -244,11 +261,13 @@ class DFHGNNTrainer:
         labels: torch.Tensor,
         splits: Dict[str, torch.Tensor],
         timestamps: Optional[torch.Tensor] = None,
+
         return_cache: bool = False,
         return_cache: bool = False,
     ) -> Union[Dict[str, float], Tuple[Dict[str, float], PredictionCache]]:
         deterministic_features = self.feature_bank(
             incidence, edge_weights, timestamps=timestamps
+
         )
         node_features_prepared = self._prepare_node_features(
             node_features,
@@ -284,9 +303,27 @@ class DFHGNNTrainer:
         if node_features.dim() == 1:
             node_features = node_features.unsqueeze(1)
         processed = robust_standardize(
-            node_features, self.feature_bank.config.quantile_clip
+            node_features, self.feature_config.quantile_clip
         )
         return processed
+
+    def _compute_deterministic_features(
+        self,
+        incidence: torch.Tensor,
+        edge_weights: torch.Tensor,
+        node_features: Optional[torch.Tensor],
+        timestamps: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        if self.feature_bank is not None:
+            return self.feature_bank(incidence, edge_weights, timestamps=timestamps)
+        return self._create_placeholder_features(node_features, incidence.shape[0])
+
+    def _create_placeholder_features(
+        self, node_features: Optional[torch.Tensor], num_nodes: int
+    ) -> torch.Tensor:
+        if node_features is not None and node_features.numel() > 0:
+            return node_features.new_zeros((num_nodes, 0))
+        return torch.zeros((num_nodes, 0), dtype=torch.get_default_dtype())
 
     def _move_to_device(self, tensor: torch.Tensor) -> torch.Tensor:
         if tensor.device == self.device:

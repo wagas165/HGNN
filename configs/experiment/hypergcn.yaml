@@ -1,0 +1,14 @@
+defaults:
+  - override /model: hypergcn
+  - override /data: email_eu_full
+
+trainer:
+  max_epochs: 120
+  adam_epochs: 80
+  lbfgs_epochs: 20
+  early_stopping_patience: 20
+
+model:
+  hidden_dim: 128
+  dropout: 0.25
+  num_layers: 3

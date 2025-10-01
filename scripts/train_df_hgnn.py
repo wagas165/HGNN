@@ -178,6 +178,7 @@ def main() -> None:
         ),
         model_config=cfg["model"],
         feature_config=DeterministicFeatureConfig(
+            enabled=cfg["features"]["deterministic"].get("enabled", True),
             spectral_topk=cfg["features"]["deterministic"].get("spectral_topk", 32),
             use_spectral=cfg["features"]["deterministic"].get("use_spectral", True),
             use_hodge=cfg["features"]["deterministic"].get("use_hodge", False),
