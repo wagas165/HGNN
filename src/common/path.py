@@ -2,8 +2,15 @@
 from __future__ import annotations
 
 import os
+import tarfile
+import zipfile
 from pathlib import Path
 from typing import Iterable, List, Optional
+
+from .logging import get_logger
+
+
+LOGGER = get_logger(__name__)
 
 
 class DatasetRootResolutionError(FileNotFoundError):
@@ -36,6 +43,61 @@ def _append_candidate(candidates: List[Path], seen: set[Path], candidate: Path) 
     if normalised not in seen:
         candidates.append(normalised)
         seen.add(normalised)
+
+
+def _extract_archive(archive_path: Path, destination: Path) -> Optional[Path]:
+    """Extract ``archive_path`` into ``destination`` if possible."""
+
+    if destination.exists() and any(destination.iterdir()):
+        return destination
+
+    destination.mkdir(parents=True, exist_ok=True)
+
+    try:
+        if zipfile.is_zipfile(archive_path):
+            with zipfile.ZipFile(archive_path) as archive:
+                archive.extractall(destination)
+        elif tarfile.is_tarfile(archive_path):
+            with tarfile.open(archive_path) as archive:
+                archive.extractall(destination)
+        else:
+            return None
+    except (OSError, zipfile.BadZipFile, tarfile.TarError) as exc:  # pragma: no cover - logging path
+        LOGGER.warning("Failed to extract dataset archive %s: %s", archive_path, exc)
+        return None
+
+    # Some archives contain a top-level directory matching the destination.
+    # Flatten the structure so that ``destination`` always holds the dataset
+    # contents directly.
+    entries = [entry for entry in destination.iterdir()]
+    if len(entries) == 1 and entries[0].is_dir():
+        inner = entries[0]
+        if inner.name == destination.name:
+            for child in list(inner.iterdir()):
+                child.rename(destination / child.name)
+            inner.rmdir()
+            return destination
+        return inner
+
+    return destination
+
+
+def _maybe_extract_candidate(candidate: Path) -> Optional[Path]:
+    """Attempt to extract an archive that matches ``candidate``."""
+
+    archive_suffixes = [".zip", ".tar.gz", ".tgz", ".tar"]
+    for suffix in archive_suffixes:
+        if suffix == ".tar.gz":
+            archive_path = candidate.parent / f"{candidate.name}.tar.gz"
+        else:
+            archive_path = candidate.with_suffix(suffix)
+
+        if archive_path.exists():
+            extracted = _extract_archive(archive_path, candidate)
+            if extracted and extracted.exists():
+                LOGGER.info("Extracted dataset archive %s to %s", archive_path, extracted)
+                return extracted
+    return None
 
 
 def resolve_dataset_root(
@@ -102,6 +164,10 @@ def resolve_dataset_root(
     add_candidate(hint_path)
 
     for candidate in candidates:
+        if not candidate.exists():
+            extracted = _maybe_extract_candidate(candidate)
+            if extracted is not None:
+                return extracted
         if candidate.exists():
             return candidate
 

@@ -1,6 +1,7 @@
 """Tests for dataset root resolution utilities."""
 from __future__ import annotations
 
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -87,4 +88,20 @@ def test_resolution_error_lists_attempts(tmp_path: Path) -> None:
     message = str(exc_info.value)
     assert "missing" in message
     assert "project" in message
+
+
+def test_resolve_extracts_zip_archive(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    data_root = project_root / "data" / "raw"
+    data_root.mkdir(parents=True)
+
+    archive_path = data_root / "dataset.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("dataset/file.txt", "payload")
+
+    resolved = resolve_dataset_root("data/raw/dataset", project_root=project_root)
+
+    assert resolved == data_root / "dataset"
+    assert (resolved / "file.txt").read_text() == "payload"
 

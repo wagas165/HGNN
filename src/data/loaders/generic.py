@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional
 
 import numpy as np
 import torch
+
+
+LOGGER = logging.getLogger(__name__)
 
 from .base import HypergraphData, HypergraphDatasetLoader
 
@@ -102,11 +106,17 @@ class EdgeListHypergraphLoader(HypergraphDatasetLoader):
 
     def _read_simplices(self, path: Path) -> List[List[int]]:
         simplices: List[List[int]] = []
+        skipped_small = 0
         with path.open("r", encoding="utf-8") as f:
             for line_num, raw_line in enumerate(f, start=1):
                 line = raw_line.strip()
                 if not line or line.startswith(self.config.comment_prefix):
                     continue
+                if line.startswith("version https://git-lfs.github.com/spec/v1"):
+                    raise RuntimeError(
+                        "Simplices file appears to be a Git LFS pointer. "
+                        "Run 'git lfs fetch --all && git lfs checkout' to obtain the dataset files."
+                    )
                 tokens = line.split(self.config.delimiter)
                 try:
                     simplex = [int(tok) for tok in tokens if tok]
@@ -115,11 +125,16 @@ class EdgeListHypergraphLoader(HypergraphDatasetLoader):
                         f"Failed to parse simplices line {line_num} in {path}: {raw_line!r}"
                     ) from exc
                 if len(simplex) < self.config.min_cardinality:
-                    raise ValueError(
-                        "Encountered hyperedge with cardinality "
-                        f"{len(simplex)} (minimum allowed {self.config.min_cardinality})"
-                    )
+                    skipped_small += 1
+                    continue
                 simplices.append(simplex)
+        if skipped_small:
+            LOGGER.warning(
+                "Dropped %d hyperedges smaller than min_cardinality=%d when reading %s",
+                skipped_small,
+                self.config.min_cardinality,
+                path,
+            )
         return simplices
 
     def _infer_num_nodes(self, simplices: Iterable[Iterable[int]]) -> int:
