@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -23,6 +23,8 @@ from src.training.optimizers import OptimizerConfig, build_adam, build_lbfgs
 
 
 LOGGER = get_logger(__name__)
+
+PredictionCache = Dict[str, Dict[str, torch.Tensor]]
 
 
 @dataclass
@@ -69,9 +71,9 @@ class DFHGNNTrainer:
         splits: Dict[str, torch.Tensor],
         num_classes: int,
         timestamps: Optional[torch.Tensor] = None,
-    ) -> tuple[Dict[str, float], nn.Module]:
-        deterministic_features = self._compute_deterministic_features(
-            incidence, edge_weights, node_features, timestamps
+    ) -> tuple[Dict[str, float], nn.Module, PredictionCache]:
+        deterministic_features = self.feature_bank(
+            incidence, edge_weights, timestamps=timestamps
         )
         node_features = self._prepare_node_features(
             node_features, deterministic_features.dtype, deterministic_features.shape[0]
@@ -193,7 +195,7 @@ class DFHGNNTrainer:
         for _ in range(self.trainer_config.lbfgs_epochs):
             lbfgs.step(closure)
 
-        final_metrics = self.evaluate(
+        final_evaluation = self.evaluate(
             model,
             x,
             z,
@@ -201,9 +203,11 @@ class DFHGNNTrainer:
             edge_weights,
             labels,
             split_indices,
+            return_cache=True,
         )
+        final_metrics, prediction_cache = final_evaluation
         LOGGER.info("Training complete. Test accuracy=%.4f", final_metrics.get("test_accuracy", 0.0))
-        return final_metrics, model
+        return final_metrics, model, prediction_cache
 
     def evaluate(
         self,
@@ -214,7 +218,9 @@ class DFHGNNTrainer:
         edge_weights: torch.Tensor,
         labels: torch.Tensor,
         split_indices: Dict[str, torch.Tensor],
-    ) -> Dict[str, float]:
+        return_cache: bool = False,
+        return_cache: bool = False,
+    ) -> Union[Dict[str, float], Tuple[Dict[str, float], PredictionCache]]:
         model.eval()
         with torch.inference_mode():
             logits, _ = model(x, z, incidence, edge_weights)
@@ -234,7 +240,17 @@ class DFHGNNTrainer:
             for future, split_name in futures.items():
                 split_metrics = future.result()
                 metrics.update({f"{split_name}_{k}": v for k, v in split_metrics.items()})
-        return metrics
+
+        if not return_cache:
+            return metrics
+
+        prediction_cache: PredictionCache = {}
+        for split_name, (split_probs, split_labels) in split_tensors.items():
+            prediction_cache[split_name] = {
+                "probs": split_probs.detach().cpu(),
+                "labels": split_labels.detach().cpu(),
+            }
+        return metrics, prediction_cache
 
     def evaluate_model(
         self,
@@ -245,9 +261,13 @@ class DFHGNNTrainer:
         labels: torch.Tensor,
         splits: Dict[str, torch.Tensor],
         timestamps: Optional[torch.Tensor] = None,
-    ) -> Dict[str, float]:
-        deterministic_features = self._compute_deterministic_features(
-            incidence, edge_weights, node_features, timestamps
+
+        return_cache: bool = False,
+        return_cache: bool = False,
+    ) -> Union[Dict[str, float], Tuple[Dict[str, float], PredictionCache]]:
+        deterministic_features = self.feature_bank(
+            incidence, edge_weights, timestamps=timestamps
+
         )
         node_features_prepared = self._prepare_node_features(
             node_features,
@@ -260,7 +280,16 @@ class DFHGNNTrainer:
         edge_weights = self._move_to_device(edge_weights)
         labels = self._move_to_device(labels)
         split_indices = {name: self._move_to_device(idx) for name, idx in splits.items()}
-        return self.evaluate(model, x, z, incidence, edge_weights, labels, split_indices)
+        return self.evaluate(
+            model,
+            x,
+            z,
+            incidence,
+            edge_weights,
+            labels,
+            split_indices,
+            return_cache=return_cache,
+        )
 
     def _prepare_node_features(
         self,
