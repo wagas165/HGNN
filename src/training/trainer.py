@@ -52,11 +52,7 @@ class DFHGNNTrainer:
     ) -> None:
         self.trainer_config = trainer_config
         self.feature_config = feature_config
-        self.feature_bank = (
-            DeterministicFeatureBank(feature_config)
-            if feature_config.enabled
-            else None
-        )
+        self.feature_bank = DeterministicFeatureBank(feature_config)
         self.optimizer_config = optimizer_config
         self.metrics = metrics
         self.device = get_device(trainer_config.device)
