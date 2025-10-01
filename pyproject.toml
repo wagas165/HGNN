@@ -14,7 +14,8 @@ dependencies = [
   "tqdm>=4.65",
   "scikit-learn>=1.2",
   "omegaconf>=2.3",
-  "matplotlib>=3.7"
+  "matplotlib>=3.7",
+  "seaborn>=0.12"
 ]
 
 [build-system]

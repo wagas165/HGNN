@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import argparse
-import json
+import logging
 import sys
 from pathlib import Path
+from typing import Dict, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -103,11 +104,75 @@ def load_config(path: str) -> dict:
     return OmegaConf.to_container(composed, resolve=True)
 
 
+def _configure_output_paths(cfg: dict, config_path: Path) -> Dict[str, Path]:
+    """Derive and create per-configuration output folders."""
+
+    config_name = config_path.stem or "experiment"
+    base_dir = Path("results") / config_name
+    reports_dir = base_dir / "reports"
+    features_dir = base_dir / "features"
+    checkpoints_dir = base_dir / "checkpoints"
+    log_path = base_dir / "train.log"
+
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    features_dir.mkdir(parents=True, exist_ok=True)
+
+    cfg["work_dir"] = str(base_dir)
+
+    reporting_cfg = cfg.setdefault("reporting", {})
+    reporting_cfg["dir"] = str(reports_dir)
+
+    features_cfg = cfg.setdefault("features", {})
+    deterministic_cfg = features_cfg.setdefault("deterministic", {})
+    deterministic_cfg["cache_dir"] = str(features_dir)
+
+    trainer_cfg = cfg.setdefault("trainer", {})
+    checkpoint_cfg = trainer_cfg.get("checkpoint")
+    if isinstance(checkpoint_cfg, dict) and checkpoint_cfg.get("enable", True):
+        checkpoints_dir.mkdir(parents=True, exist_ok=True)
+        checkpoint_cfg["dir"] = str(checkpoints_dir)
+
+    return {
+        "base": base_dir,
+        "reports": reports_dir,
+        "features": features_dir,
+        "checkpoints": checkpoints_dir,
+        "log": log_path,
+    }
+
+
+def _attach_file_logger(
+    log_path: Path, level: str = "INFO", fmt: Optional[str] = None
+) -> None:
+    """Attach a file handler to mirror console logs per experiment."""
+
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    handler = logging.FileHandler(log_path, encoding="utf-8")
+    handler.setLevel(getattr(logging, level.upper(), logging.INFO))
+    formatter = logging.Formatter(
+        fmt or "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    logging.getLogger().addHandler(handler)
+
+
 def main() -> None:
-    setup_logging()
     args = parse_args()
     config_path = Path(args.config).expanduser().resolve()
     cfg = load_config(str(config_path))
+
+    output_paths = _configure_output_paths(cfg, config_path)
+    logging_cfg = cfg.get("logging", {})
+    setup_logging(
+        level=logging_cfg.get("level", "INFO"), fmt=logging_cfg.get("format")
+    )
+    _attach_file_logger(
+        output_paths["log"],
+        level=logging_cfg.get("level", "INFO"),
+        fmt=logging_cfg.get("format"),
+    )
+
+    LOGGER.info("Saving experiment artefacts to %s", output_paths["base"].resolve())
 
     set_seed(SeedConfig(value=int(cfg.get("seed", 42))))
 

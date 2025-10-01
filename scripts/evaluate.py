@@ -15,7 +15,7 @@ LOGGER = get_logger(__name__)
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Aggregate metrics")
     parser.add_argument("--inputs", nargs="+", help="Metrics JSON files")
-    parser.add_argument("--output", type=str, default="outputs/reports/summary.json")
+    parser.add_argument("--output", type=str, default="results/summary/summary.json")
     return parser.parse_args()
 
 

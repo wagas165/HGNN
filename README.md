@@ -73,10 +73,59 @@ Train DF-HGNN with the default configuration:
 python scripts/train_df_hgnn.py --config configs/default.yaml
 ```
 
-Training logs and checkpoints are written under `outputs/` by default. The script produces
-a metrics report (`.json`) summarising train/validation/test performance.
+The script now derives the experiment name from the configuration filename and writes
+artefacts to `results/<config_name>/`. For example, running with `configs/email_config.yaml`
+creates `results/email_config/` with the following structure:
 
-### 4. Customising experiments
+```
+results/
+└── email_config/
+    ├── train.log
+    ├── reports/
+    │   ├── metrics.json
+    │   ├── metrics_bar.png
+    │   └── … (ROC/PR/Confusion plots when probabilities are cached)
+    ├── features/
+    │   └── … (deterministic feature cache)
+    └── checkpoints/
+        └── … (if checkpointing is enabled in the config)
+```
+
+`train.log` mirrors the console output so that every run keeps its own log snapshot.
+You can safely launch several experiments without overwriting previous results.
+
+### 4. One-click execution helper
+
+For remote servers or batch experimentation, use the `run.py` convenience wrapper:
+
+```bash
+python run.py --config configs/email_config.yaml
+```
+
+The wrapper tees console output into `results/<config_name>/train.log` and guarantees that
+all required folders exist. Add `--save-plots` to invoke the analysis script after training;
+pass extra experiment directories (e.g. previous runs) via `--compare` to include them in
+the comparison plots.
+
+### 5. Visualise and compare experiments
+
+`scripts/analyze_results.py` reads one or more `metrics.json` files and generates
+publication-ready charts:
+
+```bash
+python scripts/analyze_results.py \
+    --inputs results/baseline results/our_method results/ablation \
+    --metrics-keys test_accuracy test_macro_f1 test_roc_auc \
+    --boxplot-metric test_accuracy \
+    --output-dir results/analysis
+```
+
+The script produces per-method bar charts, a combined comparison bar plot, an optional
+box plot (when multiple runs per method exist), and a CSV table with summary statistics.
+Use `label=path` (for example, `Baseline=results/baseline`) to override legend names when
+necessary. Combine this tool with `run.py --save-plots` for end-to-end automation.
+
+### 6. Customising experiments
 
 - Adjust model hyperparameters (hidden size, convolution type, alignment/gating penalties)
 in the `model` section of the config.
@@ -105,7 +154,7 @@ training loop (invoke them with `python scripts/train_df_hgnn.py --config <exper
 All three variants depend only on PyTorch (no extra third-party packages) and reuse the deterministic
 feature computation shipped with DF-HGNN, enabling apples-to-apples comparisons across baselines.
 
-### 5. Documentation & further reading
+### 7. Documentation & further reading
 
 See the documents in `docs/` for the theoretical motivation (`architecture.md`), planned
 experiments (`task_tech_plan.md`), and dataset assumptions (`data-spec.md`).
