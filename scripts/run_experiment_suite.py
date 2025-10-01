@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_ROOT = PROJECT_ROOT / "configs"
 DEFAULT_METRICS = ("test_accuracy", "test_macro_f1", "test_roc_auc")
+DEFAULT_CPU_WORKERS = 120
+MIN_REQUIRED_RUNS = 10
 
 
 @dataclass(frozen=True)
@@ -63,6 +68,11 @@ EXPERIMENTS: Dict[str, Experiment] = {
 
 
 def _default_seeds(num_runs: int) -> List[int]:
+    if num_runs < MIN_REQUIRED_RUNS:
+        raise ValueError(
+            f"At least {MIN_REQUIRED_RUNS} runs are required for boxplot generation; "
+            f"received num_runs={num_runs}."
+        )
     return list(range(num_runs))
 
 
@@ -86,15 +96,113 @@ def _should_skip(exp: Experiment, run_id: str, skip_existing: bool) -> bool:
     return metrics_path.exists()
 
 
-def _run_experiment(exp: Experiment, seed: int, skip_existing: bool) -> None:
+def _run_experiment(
+    exp: Experiment,
+    seed: int,
+    skip_existing: bool,
+    device_id: Optional[str],
+    print_lock: threading.Lock,
+) -> None:
     run_id = f"seed{seed}"
     if _should_skip(exp, run_id, skip_existing):
-        print(f"[skip] {exp.key} (seed={seed}) already has metrics.json")
+        with print_lock:
+            print(f"[skip] {exp.key} (seed={seed}) already has metrics.json")
         return
 
     cmd = _build_train_command(exp, seed=seed, run_id=run_id)
-    print(f"[run] {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    env = os.environ.copy()
+    if device_id is not None:
+        env["CUDA_VISIBLE_DEVICES"] = str(device_id)
+    with print_lock:
+        device_msg = f" gpu={device_id}" if device_id is not None else ""
+        print(f"[run]{device_msg} {' '.join(cmd)}")
+    subprocess.run(cmd, check=True, env=env)
+
+
+def _determine_available_gpus(requested: Optional[Sequence[int]]) -> List[str]:
+    if requested is not None:
+        return [str(device) for device in requested]
+
+    env_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
+    if env_devices:
+        return [token.strip() for token in env_devices.split(",") if token.strip()]
+
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return [str(idx) for idx in range(torch.cuda.device_count())]
+    except Exception:
+        return []
+
+    return []
+
+
+def _partition_tasks(tasks: Sequence[Tuple[Experiment, int]], partitions: int) -> List[List[Tuple[Experiment, int]]]:
+    buckets: List[List[Tuple[Experiment, int]]] = [[] for _ in range(partitions)]
+    for index, task in enumerate(tasks):
+        buckets[index % partitions].append(task)
+    return buckets
+
+
+def _execute_tasks(
+    tasks: Sequence[Tuple[Experiment, int]],
+    gpu_devices: Sequence[str],
+    cpu_workers: int,
+    skip_existing: bool,
+) -> None:
+    if not tasks:
+        return
+
+    print_lock = threading.Lock()
+    if gpu_devices:
+        worker_count = min(len(tasks), len(gpu_devices), cpu_workers)
+        if worker_count == 0:
+            return
+        partitions = _partition_tasks(tasks, worker_count)
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = []
+            for device, partition in zip(gpu_devices[:worker_count], partitions):
+                futures.append(
+                    executor.submit(
+                        _run_partition,
+                        partition,
+                        skip_existing,
+                        device,
+                        print_lock,
+                    )
+                )
+            for future in futures:
+                future.result()
+    else:
+        worker_count = min(len(tasks), cpu_workers)
+        if worker_count == 0:
+            return
+        partitions = _partition_tasks(tasks, worker_count)
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = []
+            for partition in partitions:
+                futures.append(
+                    executor.submit(
+                        _run_partition,
+                        partition,
+                        skip_existing,
+                        None,
+                        print_lock,
+                    )
+                )
+            for future in futures:
+                future.result()
+
+
+def _run_partition(
+    partition: Sequence[Tuple[Experiment, int]],
+    skip_existing: bool,
+    device_id: Optional[str],
+    print_lock: threading.Lock,
+) -> None:
+    for exp, seed in partition:
+        _run_experiment(exp, seed, skip_existing=skip_existing, device_id=device_id, print_lock=print_lock)
 
 
 def _collect_group_inputs(group: str) -> List[str]:
@@ -143,8 +251,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--num-runs",
         type=int,
-        default=5,
-        help="Number of seeds to generate when --seeds is not provided",
+        default=MIN_REQUIRED_RUNS,
+        help=(
+            "Number of seeds to generate when --seeds is not provided. "
+            f"Must be at least {MIN_REQUIRED_RUNS} to satisfy boxplot requirements."
+        ),
     )
     parser.add_argument(
         "--skip-existing",
@@ -169,6 +280,21 @@ def parse_args() -> argparse.Namespace:
         default="test_accuracy",
         help="Metric used for boxplot visualization",
     )
+    parser.add_argument(
+        "--max-cpu-workers",
+        type=int,
+        default=DEFAULT_CPU_WORKERS,
+        help="Maximum number of concurrent CPU workers for launching experiments",
+    )
+    parser.add_argument(
+        "--gpu-devices",
+        nargs="+",
+        type=int,
+        help=(
+            "Explicit list of GPU device indices to cycle through. "
+            "Defaults to detected devices or CPU-only execution if none are available."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -178,9 +304,19 @@ def main() -> None:
     if not seeds:
         raise ValueError("At least one seed must be specified")
 
+    if len(seeds) < MIN_REQUIRED_RUNS:
+        raise ValueError(
+            f"At least {MIN_REQUIRED_RUNS} seeds are required to generate boxplots. "
+            f"Received {len(seeds)}"
+        )
+
+    tasks: List[Tuple[Experiment, int]] = []
     for seed in seeds:
         for exp in EXPERIMENTS.values():
-            _run_experiment(exp, seed=seed, skip_existing=args.skip_existing)
+            tasks.append((exp, seed))
+
+    gpu_devices = _determine_available_gpus(args.gpu_devices)
+    _execute_tasks(tasks, gpu_devices, args.max_cpu_workers, args.skip_existing)
 
     analysis_root = Path(args.analysis_dir).expanduser().resolve()
     comparison_dir = analysis_root / "method_comparison"
