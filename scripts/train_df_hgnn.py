@@ -34,6 +34,18 @@ LOGGER = get_logger(__name__)
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train DF-HGNN")
     parser.add_argument("--config", type=str, default="configs/default.yaml", help="Config file")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed to override the configuration value",
+    )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Optional identifier appended to the output directory",
+    )
     return parser.parse_args()
 
 
@@ -104,11 +116,15 @@ def load_config(path: str) -> dict:
     return OmegaConf.to_container(composed, resolve=True)
 
 
-def _configure_output_paths(cfg: dict, config_path: Path) -> Dict[str, Path]:
+def _configure_output_paths(
+    cfg: dict, config_path: Path, run_id: Optional[str] = None
+) -> Dict[str, Path]:
     """Derive and create per-configuration output folders."""
 
     config_name = config_path.stem or "experiment"
     base_dir = Path("results") / config_name
+    if run_id:
+        base_dir = base_dir / run_id
     reports_dir = base_dir / "reports"
     features_dir = base_dir / "features"
     checkpoints_dir = base_dir / "checkpoints"
@@ -161,7 +177,10 @@ def main() -> None:
     config_path = Path(args.config).expanduser().resolve()
     cfg = load_config(str(config_path))
 
-    output_paths = _configure_output_paths(cfg, config_path)
+    if args.seed is not None:
+        cfg["seed"] = int(args.seed)
+
+    output_paths = _configure_output_paths(cfg, config_path, run_id=args.run_id)
     logging_cfg = cfg.get("logging", {})
     setup_logging(
         level=logging_cfg.get("level", "INFO"), fmt=logging_cfg.get("format")
