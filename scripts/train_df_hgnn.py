@@ -198,7 +198,7 @@ def main() -> None:
         metrics=MetricRegistry([MetricConfig(name=m["name"]) for m in cfg.get("metrics", [])]),
     )
 
-    metrics, model = trainer.train(
+    metrics, model, prediction_cache = trainer.train(
         incidence=data.incidence,
         edge_weights=data.edge_weights,
         node_features=data.node_features,
@@ -254,7 +254,7 @@ def main() -> None:
         if target_splits.ood_idx is not None and target_splits.ood_idx.numel() > 0:
             transfer_split_tensors["ood"] = target_splits.ood_idx
 
-        transfer_metrics = trainer.evaluate_model(
+        transfer_eval = trainer.evaluate_model(
             model,
             target_data.incidence,
             target_data.edge_weights,
@@ -262,10 +262,18 @@ def main() -> None:
             target_data.labels,
             transfer_split_tensors,
             timestamps=target_data.timestamps,
+            return_cache=True,
         )
+        transfer_metrics, transfer_cache = transfer_eval
         metrics.update({f"transfer_{k}": v for k, v in transfer_metrics.items()})
+        for split_name, cache in transfer_cache.items():
+            prediction_cache[f"transfer_{split_name}"] = cache
 
-    report_path = save_metrics_report(metrics, cfg["reporting"].get("dir", "outputs/reports"))
+    report_path = save_metrics_report(
+        metrics,
+        cfg["reporting"].get("dir", "outputs/reports"),
+        prediction_cache=prediction_cache,
+    )
     LOGGER.info("Saved metrics report to %s", report_path)
 
 
