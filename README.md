@@ -88,6 +88,23 @@ in the `model` section of the config.
 - Toggle `trainer.pin_memory` to optimise host-to-device transfers when running on GPU.
 - Modify `data.split` to alter the train/validation/test ratios or use random splits.
 
+## Baseline implementations
+
+Alongside DF-HGNN we provide three baseline encoders that share the same feature pipeline and
+training loop (invoke them with `python scripts/train_df_hgnn.py --config <experiment.yaml>`):
+
+- **AllSet Transformer** (Chien et al., NeurIPS 2022) relies on multi-head attention between
+  node and hyperedge representations. Our default run uses a 160-dimensional hidden size, three
+  transformer blocks with four heads, and an MLP expansion ratio of 2.0.【F:configs/experiment/allset_transformer.yaml†L1-L15】
+- **UniGNN** (Huang et al., NeurIPS 2021) couples edge and node updates with residual diffusion.
+  The reference configuration keeps three stacked layers with dropout 0.3 to mimic the published
+  setup.【F:configs/experiment/unignn.yaml†L1-L14】
+- **HyperGCN** (Yadati et al., NeurIPS 2019) builds a symmetric normalised Laplacian from the
+  incidence matrix and applies three diffusion layers with 0.25 dropout.【F:configs/experiment/hypergcn.yaml†L1-L14】
+
+All three variants depend only on PyTorch (no extra third-party packages) and reuse the deterministic
+feature computation shipped with DF-HGNN, enabling apples-to-apples comparisons across baselines.
+
 ### 5. Documentation & further reading
 
 See the documents in `docs/` for the theoretical motivation (`architecture.md`), planned

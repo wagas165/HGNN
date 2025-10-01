@@ -1,0 +1,16 @@
+defaults:
+  - override /model: allset_transformer
+  - override /data: email_eu_full
+
+trainer:
+  max_epochs: 150
+  adam_epochs: 90
+  lbfgs_epochs: 20
+  early_stopping_patience: 20
+
+model:
+  hidden_dim: 160
+  dropout: 0.2
+  num_layers: 3
+  num_heads: 4
+  mlp_ratio: 2.0

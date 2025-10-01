@@ -78,6 +78,17 @@ class DFHGNNTrainer:
         )
         in_dim = node_features.shape[1]
         det_dim = deterministic_features.shape[1]
+        reserved_keys = {
+            "name",
+            "hidden_dim",
+            "dropout",
+            "conv_type",
+            "chebyshev_order",
+            "lambda_align",
+            "lambda_gate",
+            "fusion_dim",
+        }
+        extras = {k: v for k, v in self.model_config.items() if k not in reserved_keys}
         model = create_model(
             name=self.model_config["name"],
             config=ModelFactoryInput(
@@ -91,6 +102,7 @@ class DFHGNNTrainer:
                 lambda_align=float(self.model_config.get("lambda_align", 0.1)),
                 lambda_gate=float(self.model_config.get("lambda_gate", 0.001)),
                 fusion_dim=self.model_config.get("fusion_dim"),
+                extras=extras,
             ),
         ).to(self.device)
 
