@@ -34,6 +34,7 @@ def robust_standardize(features: Tensor, clip: float) -> Tensor:
 
 @dataclass
 class DeterministicFeatureConfig:
+    enabled: bool = True
     spectral_topk: int = 32
     use_spectral: bool = True
     use_hodge: bool = False
@@ -58,6 +59,9 @@ class DeterministicFeatureBank:
         edge_weights: Tensor,
         timestamps: Optional[Tensor] = None,
     ) -> Tensor:
+        if not self.config.enabled:
+            return self._empty_features(incidence)
+
         cache = self._load_cache(incidence, timestamps)
         if cache is not None:
             return cache
@@ -108,6 +112,12 @@ class DeterministicFeatureBank:
 
         self._save_cache(incidence, timestamps, combined)
         return combined
+
+    def _empty_features(self, incidence: Tensor) -> Tensor:
+        empty = incidence.new_zeros((incidence.shape[0], 0))
+        if empty.dtype != self._compute_dtype:
+            empty = empty.to(dtype=self._compute_dtype)
+        return empty
 
     def _hyperdegree(self, incidence: Tensor, edge_weights: Tensor) -> Tensor:
         weighted_degree = incidence @ edge_weights.unsqueeze(1)
@@ -204,6 +214,8 @@ class DeterministicFeatureBank:
     def _cache_path(
         self, incidence: Tensor, timestamps: Optional[Tensor]
     ) -> Optional[Path]:
+        if not self.config.enabled:
+            return None
         if not self.config.cache_dir or (timestamps is not None and self.config.use_temporal):
             return None
         num_nodes, num_edges = incidence.shape
@@ -215,6 +227,8 @@ class DeterministicFeatureBank:
     def _load_cache(
         self, incidence: Tensor, timestamps: Optional[Tensor]
     ) -> Optional[Tensor]:
+        if not self.config.enabled:
+            return None
         cache_path = self._cache_path(incidence, timestamps)
         if cache_path and cache_path.exists():
             data = np.load(cache_path)
@@ -224,6 +238,8 @@ class DeterministicFeatureBank:
     def _save_cache(
         self, incidence: Tensor, timestamps: Optional[Tensor], features: Tensor
     ) -> None:
+        if not self.config.enabled:
+            return
         cache_path = self._cache_path(incidence, timestamps)
         if cache_path:
             np.savez_compressed(

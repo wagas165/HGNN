@@ -80,8 +80,9 @@ a metrics report (`.json`) summarising train/validation/test performance.
 
 - Adjust model hyperparameters (hidden size, convolution type, alignment/gating penalties)
 in the `model` section of the config.
-- Enable or disable deterministic feature families under `features.deterministic` and
-  control where they are computed via `device` (use `auto` to prefer CUDA) and
+- Enable or disable deterministic feature families under `features.deterministic` using
+  the `enabled` flag, and control where they are computed via `device` (use `auto` to
+  prefer CUDA) and
   `expansion_chunk_size` for large hypergraphs.
 - Edit `trainer` to change the Adam/L-BFGS schedule or gradient clipping.
 - Toggle `trainer.pin_memory` to optimise host-to-device transfers when running on GPU.
