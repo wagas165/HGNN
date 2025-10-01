@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Sequence, Tuple
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
 DEFAULT_METRIC_KEYS = ("test_accuracy", "test_macro_f1", "test_roc_auc")
+MIN_BOX_PLOT_RUNS = 10
 
 
 @dataclass
@@ -107,11 +109,19 @@ def _configure_style() -> None:
     )
 
 
+def _slugify(text: str) -> str:
+    slug = text.lower()
+    slug = re.sub(r"\s+", "_", slug)
+    slug = re.sub(r"[^a-z0-9._-]", "_", slug)
+    slug = re.sub(r"_+", "_", slug).strip("_")
+    return slug or "metric"
+
+
 def _save_method_bars(df: pd.DataFrame, output_dir: Path) -> None:
     if df.empty:
         return
 
-    summary = df.groupby(["Method", "Metric"], as_index=False)["Score"].mean()
+    summary = df.groupby(["Method", "Metric"], as_index=False, observed=False)["Score"].mean()
     for method, subset in summary.groupby("Method"):
         plt.figure()
         ax = sns.barplot(data=subset, x="Metric", y="Score", color="#4c72b0")
@@ -120,7 +130,7 @@ def _save_method_bars(df: pd.DataFrame, output_dir: Path) -> None:
         ax.set_ylabel("Score")
         ax.set_xlabel("Metric")
         plt.tight_layout()
-        filename_slug = method.lower().replace(" ", "_")
+        filename_slug = _slugify(method)
         plt.savefig(output_dir / f"{filename_slug}_metrics_bar.png")
         plt.close()
 
@@ -136,23 +146,40 @@ def _save_method_bars(df: pd.DataFrame, output_dir: Path) -> None:
     plt.close()
 
 
-def _save_boxplot(df: pd.DataFrame, metric: str, output_dir: Path) -> None:
-    subset = df[df["Metric"] == metric]
-    if subset.empty:
-        return
+def _save_boxplots(
+    df: pd.DataFrame, metrics: Sequence[str], output_dir: Path, minimum_runs: int = MIN_BOX_PLOT_RUNS
+) -> None:
+    unique_metrics = []
+    for metric in metrics:
+        if metric not in unique_metrics:
+            unique_metrics.append(metric)
 
-    counts = subset.groupby("Method")["Score"].count()
-    if (counts < 2).all():
-        return
+    for metric in unique_metrics:
+        subset = df[df["Metric"] == metric]
+        if subset.empty():
+            continue
 
-    plt.figure()
-    ax = sns.boxplot(data=subset, x="Method", y="Score", width=0.5)
-    ax.set_title(f"{metric} distribution")
-    ax.set_ylabel(metric)
-    ax.set_xlabel("Method")
-    plt.tight_layout()
-    plt.savefig(output_dir / f"{metric}_boxplot.png")
-    plt.close()
+        counts = subset.groupby("Method", observed=False)["Score"].count()
+        if counts.empty():
+            continue
+
+        lacking = counts[counts < minimum_runs]
+        if not lacking.empty():
+            details = ", ".join(f"{method}: {count}" for method, count in lacking.items())
+            raise ValueError(
+                f"Metric '{metric}' does not have enough runs for boxplot generation. "
+                f"Expected at least {minimum_runs} per method, but found {details}."
+            )
+
+        plt.figure()
+        ax = sns.boxplot(data=subset, x="Method", y="Score", width=0.5)
+        ax.set_title(f"{metric} distribution")
+        ax.set_ylabel(metric)
+        ax.set_xlabel("Method")
+        plt.tight_layout()
+        filename_slug = _slugify(metric)
+        plt.savefig(output_dir / f"{filename_slug}_boxplot.png")
+        plt.close()
 
 
 def _save_summary_table(df: pd.DataFrame, output_dir: Path) -> None:
@@ -160,7 +187,7 @@ def _save_summary_table(df: pd.DataFrame, output_dir: Path) -> None:
         return
 
     summary = (
-        df.groupby(["Method", "Metric"])["Score"]
+        df.groupby(["Method", "Metric"], observed=False)["Score"]
         .agg(["mean", "std", "min", "max", "count"])
         .reset_index()
     )
@@ -204,7 +231,10 @@ def main() -> None:
 
     _configure_style()
     _save_method_bars(df, output_dir)
-    _save_boxplot(df, args.boxplot_metric, output_dir)
+    boxplot_metrics: List[str] = list(metric_keys)
+    if args.boxplot_metric not in boxplot_metrics:
+        boxplot_metrics.append(args.boxplot_metric)
+    _save_boxplots(df, boxplot_metrics, output_dir)
     _save_summary_table(df, output_dir)
 
 
