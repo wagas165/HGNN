@@ -1,0 +1,14 @@
+defaults:
+  - override /model: unignn
+  - override /data: email_eu_full
+
+trainer:
+  max_epochs: 140
+  adam_epochs: 100
+  lbfgs_epochs: 15
+  early_stopping_patience: 25
+
+model:
+  hidden_dim: 144
+  dropout: 0.3
+  num_layers: 3
