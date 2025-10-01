@@ -219,7 +219,6 @@ class DFHGNNTrainer:
         labels: torch.Tensor,
         split_indices: Dict[str, torch.Tensor],
         return_cache: bool = False,
-        return_cache: bool = False,
     ) -> Union[Dict[str, float], Tuple[Dict[str, float], PredictionCache]]:
         model.eval()
         with torch.inference_mode():
@@ -262,7 +261,6 @@ class DFHGNNTrainer:
         splits: Dict[str, torch.Tensor],
         timestamps: Optional[torch.Tensor] = None,
 
-        return_cache: bool = False,
         return_cache: bool = False,
     ) -> Union[Dict[str, float], Tuple[Dict[str, float], PredictionCache]]:
         deterministic_features = self.feature_bank(
