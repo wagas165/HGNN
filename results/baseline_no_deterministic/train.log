@@ -1,0 +1,21 @@
+2025-10-01 12:38:05,441 - __main__ - INFO - Saving experiment artefacts to /home/zyc/HGNN-main/results/baseline_no_deterministic
+2025-10-01 12:38:09,035 - src.training.trainer - INFO - Model initialized with 25476 parameters
+2025-10-01 12:38:10,627 - src.training.trainer - INFO - Epoch 1 | loss=1.3828 | val_accuracy=0.4726
+2025-10-01 12:38:10,747 - src.training.trainer - INFO - Epoch 2 | loss=1.3737 | val_accuracy=0.3284
+2025-10-01 12:38:10,864 - src.training.trainer - INFO - Epoch 3 | loss=1.3658 | val_accuracy=0.2637
+2025-10-01 12:38:10,980 - src.training.trainer - INFO - Epoch 4 | loss=1.3580 | val_accuracy=0.2537
+2025-10-01 12:38:11,096 - src.training.trainer - INFO - Epoch 5 | loss=1.3508 | val_accuracy=0.2537
+2025-10-01 12:38:11,214 - src.training.trainer - INFO - Epoch 6 | loss=1.3440 | val_accuracy=0.2537
+2025-10-01 12:38:11,333 - src.training.trainer - INFO - Epoch 7 | loss=1.3380 | val_accuracy=0.2488
+2025-10-01 12:38:11,450 - src.training.trainer - INFO - Epoch 8 | loss=1.3334 | val_accuracy=0.2488
+2025-10-01 12:38:11,568 - src.training.trainer - INFO - Epoch 9 | loss=1.3274 | val_accuracy=0.2488
+2025-10-01 12:38:11,685 - src.training.trainer - INFO - Epoch 10 | loss=1.3233 | val_accuracy=0.2488
+2025-10-01 12:38:11,803 - src.training.trainer - INFO - Epoch 11 | loss=1.3155 | val_accuracy=0.2488
+2025-10-01 12:38:11,920 - src.training.trainer - INFO - Epoch 12 | loss=1.3138 | val_accuracy=0.2488
+2025-10-01 12:38:12,039 - src.training.trainer - INFO - Epoch 13 | loss=1.3084 | val_accuracy=0.2488
+2025-10-01 12:38:12,158 - src.training.trainer - INFO - Epoch 14 | loss=1.3085 | val_accuracy=0.2488
+2025-10-01 12:38:12,274 - src.training.trainer - INFO - Epoch 15 | loss=1.3045 | val_accuracy=0.2488
+2025-10-01 12:38:12,392 - src.training.trainer - INFO - Epoch 16 | loss=1.3036 | val_accuracy=0.2488
+2025-10-01 12:38:12,392 - src.training.trainer - INFO - Early stopping triggered at epoch 16
+2025-10-01 12:38:47,878 - src.training.trainer - INFO - Training complete. Test accuracy=0.7822
+2025-10-01 12:38:50,828 - __main__ - INFO - Saved metrics report to results/baseline_no_deterministic/reports/metrics.json

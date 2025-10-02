@@ -1,0 +1,11 @@
+{
+  "train_accuracy": 1.0,
+  "train_macro_f1": 1.0,
+  "train_roc_auc": 1.0,
+  "val_accuracy": 0.9303482587064676,
+  "val_macro_f1": 0.9309664904124065,
+  "val_roc_auc": 0.9853271220187855,
+  "test_accuracy": 0.9306930693069307,
+  "test_macro_f1": 0.9304802017894537,
+  "test_roc_auc": 0.9862680662627545
+}

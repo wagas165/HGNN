@@ -1,0 +1,23 @@
+2025-10-01 12:40:01,740 - __main__ - INFO - Saving experiment artefacts to /home/zyc/HGNN-main/results/baseline
+2025-10-01 12:40:05,856 - src.training.trainer - INFO - Model initialized with 52996 parameters
+2025-10-01 12:40:07,307 - src.training.trainer - INFO - Epoch 1 | loss=1.3844 | val_accuracy=0.2537
+2025-10-01 12:40:07,474 - src.training.trainer - INFO - Epoch 2 | loss=1.3829 | val_accuracy=0.3134
+2025-10-01 12:40:07,591 - src.training.trainer - INFO - Epoch 3 | loss=1.3728 | val_accuracy=0.4577
+2025-10-01 12:40:07,712 - src.training.trainer - INFO - Epoch 4 | loss=1.3645 | val_accuracy=0.3284
+2025-10-01 12:40:07,833 - src.training.trainer - INFO - Epoch 5 | loss=1.3541 | val_accuracy=0.3831
+2025-10-01 12:40:07,951 - src.training.trainer - INFO - Epoch 6 | loss=1.3435 | val_accuracy=0.4030
+2025-10-01 12:40:08,070 - src.training.trainer - INFO - Epoch 7 | loss=1.3346 | val_accuracy=0.2687
+2025-10-01 12:40:08,190 - src.training.trainer - INFO - Epoch 8 | loss=1.3209 | val_accuracy=0.2488
+2025-10-01 12:40:08,308 - src.training.trainer - INFO - Epoch 9 | loss=1.3121 | val_accuracy=0.2488
+2025-10-01 12:40:08,426 - src.training.trainer - INFO - Epoch 10 | loss=1.3011 | val_accuracy=0.2488
+2025-10-01 12:40:08,545 - src.training.trainer - INFO - Epoch 11 | loss=1.2907 | val_accuracy=0.2488
+2025-10-01 12:40:08,663 - src.training.trainer - INFO - Epoch 12 | loss=1.2819 | val_accuracy=0.2488
+2025-10-01 12:40:08,781 - src.training.trainer - INFO - Epoch 13 | loss=1.2731 | val_accuracy=0.2488
+2025-10-01 12:40:08,899 - src.training.trainer - INFO - Epoch 14 | loss=1.2614 | val_accuracy=0.2488
+2025-10-01 12:40:09,017 - src.training.trainer - INFO - Epoch 15 | loss=1.2571 | val_accuracy=0.2488
+2025-10-01 12:40:09,136 - src.training.trainer - INFO - Epoch 16 | loss=1.2487 | val_accuracy=0.2488
+2025-10-01 12:40:09,253 - src.training.trainer - INFO - Epoch 17 | loss=1.2503 | val_accuracy=0.2488
+2025-10-01 12:40:09,372 - src.training.trainer - INFO - Epoch 18 | loss=1.2432 | val_accuracy=0.2488
+2025-10-01 12:40:09,372 - src.training.trainer - INFO - Early stopping triggered at epoch 18
+2025-10-01 12:40:44,185 - src.training.trainer - INFO - Training complete. Test accuracy=0.9356
+2025-10-01 12:40:47,091 - __main__ - INFO - Saved metrics report to results/baseline/reports/metrics.json

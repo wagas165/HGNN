@@ -1,0 +1,43 @@
+2025-10-01 12:41:02,655 - __main__ - INFO - Saving experiment artefacts to /home/zyc/HGNN-main/results/allset_transformer
+2025-10-01 12:41:06,842 - src.training.trainer - INFO - Model initialized with 627364 parameters
+2025-10-01 12:41:08,898 - src.training.trainer - INFO - Epoch 1 | loss=1.6794 | val_accuracy=0.3781
+2025-10-01 12:41:09,674 - src.training.trainer - INFO - Epoch 2 | loss=1.3490 | val_accuracy=0.5224
+2025-10-01 12:41:10,450 - src.training.trainer - INFO - Epoch 3 | loss=1.0236 | val_accuracy=0.7413
+2025-10-01 12:41:11,224 - src.training.trainer - INFO - Epoch 4 | loss=0.6971 | val_accuracy=0.6667
+2025-10-01 12:41:11,995 - src.training.trainer - INFO - Epoch 5 | loss=0.6736 | val_accuracy=0.6915
+2025-10-01 12:41:12,764 - src.training.trainer - INFO - Epoch 6 | loss=0.6222 | val_accuracy=0.7761
+2025-10-01 12:41:13,540 - src.training.trainer - INFO - Epoch 7 | loss=0.5137 | val_accuracy=0.8458
+2025-10-01 12:41:14,315 - src.training.trainer - INFO - Epoch 8 | loss=0.4568 | val_accuracy=0.8209
+2025-10-01 12:41:15,083 - src.training.trainer - INFO - Epoch 9 | loss=0.4555 | val_accuracy=0.8209
+2025-10-01 12:41:15,853 - src.training.trainer - INFO - Epoch 10 | loss=0.4462 | val_accuracy=0.8806
+2025-10-01 12:41:16,627 - src.training.trainer - INFO - Epoch 11 | loss=0.3922 | val_accuracy=0.8458
+2025-10-01 12:41:17,396 - src.training.trainer - INFO - Epoch 12 | loss=0.3599 | val_accuracy=0.8109
+2025-10-01 12:41:18,164 - src.training.trainer - INFO - Epoch 13 | loss=0.3575 | val_accuracy=0.8408
+2025-10-01 12:41:18,933 - src.training.trainer - INFO - Epoch 14 | loss=0.3525 | val_accuracy=0.8657
+2025-10-01 12:41:19,700 - src.training.trainer - INFO - Epoch 15 | loss=0.3214 | val_accuracy=0.8706
+2025-10-01 12:41:20,466 - src.training.trainer - INFO - Epoch 16 | loss=0.2857 | val_accuracy=0.8905
+2025-10-01 12:41:21,239 - src.training.trainer - INFO - Epoch 17 | loss=0.2839 | val_accuracy=0.9005
+2025-10-01 12:41:22,010 - src.training.trainer - INFO - Epoch 18 | loss=0.2586 | val_accuracy=0.9154
+2025-10-01 12:41:22,784 - src.training.trainer - INFO - Epoch 19 | loss=0.2757 | val_accuracy=0.9005
+2025-10-01 12:41:23,554 - src.training.trainer - INFO - Epoch 20 | loss=0.2421 | val_accuracy=0.8806
+2025-10-01 12:41:24,322 - src.training.trainer - INFO - Epoch 21 | loss=0.2364 | val_accuracy=0.8806
+2025-10-01 12:41:25,093 - src.training.trainer - INFO - Epoch 22 | loss=0.2138 | val_accuracy=0.8806
+2025-10-01 12:41:25,863 - src.training.trainer - INFO - Epoch 23 | loss=0.2309 | val_accuracy=0.8706
+2025-10-01 12:41:26,632 - src.training.trainer - INFO - Epoch 24 | loss=0.2056 | val_accuracy=0.8806
+2025-10-01 12:41:27,400 - src.training.trainer - INFO - Epoch 25 | loss=0.1944 | val_accuracy=0.9154
+2025-10-01 12:41:28,168 - src.training.trainer - INFO - Epoch 26 | loss=0.1852 | val_accuracy=0.9104
+2025-10-01 12:41:28,940 - src.training.trainer - INFO - Epoch 27 | loss=0.1844 | val_accuracy=0.9055
+2025-10-01 12:41:29,708 - src.training.trainer - INFO - Epoch 28 | loss=0.1806 | val_accuracy=0.9104
+2025-10-01 12:41:30,473 - src.training.trainer - INFO - Epoch 29 | loss=0.1618 | val_accuracy=0.8905
+2025-10-01 12:41:31,243 - src.training.trainer - INFO - Epoch 30 | loss=0.1584 | val_accuracy=0.8706
+2025-10-01 12:41:32,010 - src.training.trainer - INFO - Epoch 31 | loss=0.1579 | val_accuracy=0.8706
+2025-10-01 12:41:32,778 - src.training.trainer - INFO - Epoch 32 | loss=0.1461 | val_accuracy=0.8905
+2025-10-01 12:41:33,548 - src.training.trainer - INFO - Epoch 33 | loss=0.1582 | val_accuracy=0.9154
+2025-10-01 12:41:34,317 - src.training.trainer - INFO - Epoch 34 | loss=0.1370 | val_accuracy=0.9154
+2025-10-01 12:41:35,087 - src.training.trainer - INFO - Epoch 35 | loss=0.1397 | val_accuracy=0.9154
+2025-10-01 12:41:35,856 - src.training.trainer - INFO - Epoch 36 | loss=0.1411 | val_accuracy=0.9154
+2025-10-01 12:41:36,625 - src.training.trainer - INFO - Epoch 37 | loss=0.1106 | val_accuracy=0.8955
+2025-10-01 12:41:37,395 - src.training.trainer - INFO - Epoch 38 | loss=0.1234 | val_accuracy=0.9005
+2025-10-01 12:41:37,396 - src.training.trainer - INFO - Early stopping triggered at epoch 38
+2025-10-01 12:44:52,818 - src.training.trainer - INFO - Training complete. Test accuracy=0.9307
+2025-10-01 12:44:55,719 - __main__ - INFO - Saved metrics report to results/allset_transformer/reports/metrics.json
