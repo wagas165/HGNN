@@ -19,13 +19,13 @@ features:
     expansion_chunk_size: 512
 
 data:
-  label_fraction: 0.1
+  label_fraction: 1.0
   split:
     strategy: stratified
-    train_ratio: 0.5
+    train_ratio: 0.6
     val_ratio: 0.2
     test_ratio: 0.2
-    ood_ratio: 0.1
+    ood_ratio: 0.0
     num_splits: 1
 
-notes: "Low-label regime for Cat-Edge-DAWN with 10% supervision"
+notes: "Full-supervision baseline for Cat-Edge-DAWN"

@@ -64,6 +64,16 @@ If none of these locations exists, the script will list every attempted path in
 the error message to aid debugging. Adjust `configs/default.yaml` (see the
 `data` section) or set `HGNN_DATA_ROOT` if your datasets live elsewhere.
 
+> **Cat-Edge-DAWN preparation:**
+> The raw Cat-Edge-DAWN dump ships with 1-indexed hyperedges and textual node
+> annotations. Run `PYTHONPATH=. python scripts/prepare_cat_edge_dawn_raw.py`
+> once after downloading the archive to materialise
+> `cat-edge-DAWN-simplices-zero-based.txt`, `cat-edge-DAWN-node-labels-int.txt`,
+> and the accompanying label map JSON (pass `--node-label-output-binary` if you
+> also need a `.npy` dump). The standard preprocessing script
+> (`scripts/preprocess_cat_edge_dawn.py`) then consumes these normalised files
+> to build the tensor bundle used during training.
+
 
 ### 3. Run training
 

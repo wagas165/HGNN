@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--simplices-file",
         type=str,
-        default="cat-edge-DAWN-simplices.txt",
+        default="cat-edge-DAWN-simplices-zero-based.txt",
         help="Relative path to the hyperedge list",
     )
     parser.add_argument(
@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--labels-file",
         type=str,
-        default="cat-edge-DAWN-node-labels.txt",
+        default="cat-edge-DAWN-node-labels-int.txt",
         help="Relative path to node labels",
     )
     parser.add_argument(

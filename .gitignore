@@ -1,0 +1,2 @@
+# Ignore binary artifacts generated during Cat-Edge-DAWN preparation
+/data/raw/cat-edge-DAWN/cat-edge-DAWN-node-labels.npy
