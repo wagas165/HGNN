@@ -1,8 +1,8 @@
 name: cat_edge_dawn
 root: data/raw/cat-edge-DAWN
 files:
-  simplices: cat-edge-DAWN-simplices.txt
-  labels: cat-edge-DAWN-node-labels.txt
+  simplices: cat-edge-DAWN-simplices-zero-based.txt
+  labels: cat-edge-DAWN-node-labels-int.txt
 metadata:
   description: "Dynamic attribute-weighted network of collaborative tagging"
   citation: "Wang et al., 2020"
@@ -10,3 +10,5 @@ metadata:
     - node_classification
     - temporal_forecasting
     - hyperedge_prediction
+artifacts:
+  label_map: cat-edge-DAWN-node-label-map.json

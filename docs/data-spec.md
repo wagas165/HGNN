@@ -42,7 +42,7 @@
 | 数据集 | 目录 | 关键文件 | 推荐任务 |
 | --- | --- | --- | --- |
 | email-Eu-full | `data/raw/email-Eu-full/` | `*-nverts.txt`, `*-simplices.txt`, `*-times.txt`, `*-labels.npy` | 节点分类、超边预测 |
-| cat-edge-DAWN | `data/raw/cat-edge-DAWN/` | `cat-edge-DAWN-simplices.txt`, `cat-edge-DAWN-node-labels.txt` | 低标注率节点分类、时间感知预测 |
+| cat-edge-DAWN | `data/raw/cat-edge-DAWN/` | `cat-edge-DAWN-simplices-zero-based.txt`, `cat-edge-DAWN-node-labels-int.txt`, `cat-edge-DAWN-node-label-map.json` | 低标注率节点分类、时间感知预测 |
 | coauth-DBLP-full | `data/raw/coauth-DBLP-full/` | `coauth-DBLP-full-simplices.txt`, `coauth-DBLP-full-node-labels.txt`, `coauth-DBLP-full-times.txt` | 跨域迁移、社区检测 |
 | stackoverflow-answers | `data/raw/stackoverflow-answers/` | `stackoverflow-answers-hyperedges.txt`, `stackoverflow-answers-node-labels.txt`, `stackoverflow-answers-label-names.txt` | OOD 节点分类、超边预测 |
 
